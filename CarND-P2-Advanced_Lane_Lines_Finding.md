@@ -1,9 +1,13 @@
 <!-- https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet#code -->
-# **P2 - Advanced Lane Lines on the Road Finding** 
+# **P2 - Advanced Road Lane Lines Finding** 
 
 ### **Description**
 
 When we drive, we use our eyes to decide where to go. The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle (depending on lines curvature).  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm then extract some of their features. This project detect lane lines and features like curvate, finding a surface projection and a relation bewteen images world and real world. I used the tools that I learned about in the lesson (Computer Vision Fundamentals, Camera Calibration, Gradients and Color Spaces, and advanced computer vision from Udacity's Self driving car nano degree).
+
+<img src="./output_images/test2.jpg" alt="drawing" width="700"/>  
+
+*Figure 1 - Result of curving lane lines finding process*
 
 The goals / steps of this project are the following:
 
@@ -17,12 +21,11 @@ The goals / steps of this project are the following:
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
 <!-- [Rubric = https://review.udacity.com/#!/rubrics/571/view -->
-
 ---
 
 ### **Used Methods**
 
-<!-- The tools that I used are color space (HSV and HLS), region of interest selection, gray scaling, Gaussian smoothing, Canny Edge Detection and Hough Transform line detection. To achieve the goal was piece together a pipeline to detect the line segments in the image/video, averaging/extrapolating them and draw them onto the image/video for display.  -->
+The tools that I used for pipline are color spaces (HSV and HLS), regions of interest, Gaussian smoothing (filters), Canny Edge Detection, Hough LineTransform  detection, Histograms peaks, sliding window, transformation matrix for surface projection and others. To achieve the goal was pieced together a pipeline to detect the lane lines of each side of the road for images and videos. The curvatures of lines were calcualted to later estimate the car's stering and position respecto to lane lines center.
 
 ---
 
@@ -34,6 +37,8 @@ To run the pipeline just run in a prompt the command:
 
 Tested on: python 2.7 (3.X should work), OpenCV 3.0.0 (Higher version should work), UBUNTU 16.04.
 
+Feel free to change any input argument of any function explained next.
+
 ---
 
 ### **Code Description**
@@ -41,6 +46,10 @@ Tested on: python 2.7 (3.X should work), OpenCV 3.0.0 (Higher version should wor
 ### 1. Camera Calibration
 
 OpenCV functions and other methods were used to calculate the correct camera matrix and distortion coefficients using the calibration chessboard images provided in the repository (x6 chessboard images). The distortion matrix was used to un-distort one of the calibration images provided as a demonstration that the calibration is correct. 
+
+<img src="./output_images/cam_calibration.jpg" alt="drawing" width="700"/>  
+
+*Figure 2 - Result of camera calibration*
 
 ### 1. Others
 
@@ -56,28 +65,32 @@ Provide an example image of your result plotted back down onto the road such tha
 
 Provide a link to your final video output. Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!)
 
+---
 ### **Results**
 
 Result with test videos here:  
 
+1. [CarND-P2-Adavenced_Lane_Lines_Finding-project_video](https://www.youtube.com/watch?v=vOMT9DGa2Bw)  
+2. [CarND-P2-Adavenced_Lane_Lines_Finding-challenge_video](https://www.youtube.com/watch?v=1VgXQWhJjMw)  
+3. [CarND-P2-Adavenced_Lane_Lines_Finding-harder_challenge_video](https://www.youtube.com/watch?v=IY_yvBPCamc)  
+
 ---
-  
 ### **Potential Shortcomings**
   
+* Shortcoming: Description
+* Shortcoming: Description
+* Shortcoming: Description
+
 ---
-  
 ### **Possible Improvements**
 
-
-### **Discussion**
-
-<!-- 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
-
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.   -->
-
+* Improvements: Description
+* Improvements: Description
+* Improvements: Description
 
 ---
-  
+### **Discussion**
+
 > **Date:** &nbsp; 03/02/2019  
 > **Programmer:** &nbsp;John A. Betancourt G.  
 > **Phone:** &nbsp;+57 (311) 813 7206 / +57 (350) 283 51 22  
