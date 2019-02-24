@@ -21,11 +21,9 @@ Tested on:
 # =============================================================================
 #importing useful packages
 from __future__ import print_function, division
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import numpy as np
-import cv2
 import math
+import cv2
 import os
 
 class bcolors:
@@ -150,7 +148,7 @@ def color_range_tunner(img_src, tune = True, conf_file_path = "", space_model = 
         img_src: `cv2.math` input image to tune parameters of color space model 
         tune: `boolean` Enable/Disable tuner mode
         conf_file_path: `string` npz configuration file to save or load parameters
-        space_model: `cv2.flag` Color space for opencv interface
+        space_model: `cv2.flag` Color space for OpenCV interface
     Returns:
         Arg1Min: `int` Minimum value of first argument in color model (HSV = H / HLS = H)
         Arg2Min: `int` Minimum value of second argument in color model (HSV = S / HLS = L)
@@ -384,7 +382,7 @@ def find_lanelines(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT_
 
     # Get canny image
     mask_canny = cv2.Canny(image = mask, threshold1 = 0, threshold2 = 255)
-    # cv2.imshow("mask_canny", mask_canny)
+    # cv2.imshow("mask_canny", mask_canny); cv2.waitKey(0)
 
     # -------------------------------------------------------------------------
     # IDENTIFY RIGHT AND LEFT LANE LINES - IDENTIFY RIGHT AND LEFT LANE LINES -
@@ -542,7 +540,7 @@ def draw_lanelines(img_src, Right_Lane_Line, Left_Lane_Line, VERT_TRESH = 0.6, d
     # Return result
     return img_src
 
-def calibrate_camera(folder_path = "", calibration_file = "", n_x = 6, n_y = 9, show_draws = False):
+def calibrate_camera(folder_path = "", calibration_file = "", n_x = 6, n_y = 9, show_drawings = False):
     
     """ From chess board images find the coefficient and distortion of 
         the camera and save the matrix and distortion coefficients
@@ -551,7 +549,7 @@ def calibrate_camera(folder_path = "", calibration_file = "", n_x = 6, n_y = 9, 
         calibration_file: `string` Name of the file (calibration matrix) to save or load parameters
         n_x: `int` Number of vertical divisions in chessboard
         n_y: `int` Number of horizontal divisions in chessboard
-        show_draws: `boolean` Enable/Disable show chessboard detections
+        show_drawings: `boolean` Enable/Disable show chessboard detections
     Returns:
         mtx: `numpy.narray` camera's distortion matrix
         dist: `numpy.narray` camera's distortion vector
@@ -586,7 +584,7 @@ def calibrate_camera(folder_path = "", calibration_file = "", n_x = 6, n_y = 9, 
             code = cv2.COLOR_RGB2GRAY,
             src = img_src) 
 
-        # Find coners in chess board
+        # Find corners in chess board
         found, corners = cv2.findChessboardCorners(
             patternSize = (n_x, n_y),
             image = img_src_gray) 
@@ -594,7 +592,7 @@ def calibrate_camera(folder_path = "", calibration_file = "", n_x = 6, n_y = 9, 
         # If chess board was found in image
         if found: 
             
-            if show_draws:
+            if show_drawings:
                 # Shows chess board corner detection Draw chess boards in images
                 img_chess = cv2.drawChessboardCorners(
                     patternSize = (n_x, n_y), 
@@ -734,16 +732,16 @@ def find_projection(folder_path, projection_file, Lm, Lb, Rm, Rb, ORIGINAL_SIZE,
         Rm: `float`  linear regression slope of right lane line
         Rb: `float`  linear regression y-intercept of right lane line
         ORIGINAL_SIZE: `tuple` original size (width, height)
-        UNWARPED_SIZE: `tuple` unwarped size (width, height)
+        UNWARPED_SIZE: `tuple` Unwarped size (width, height)
         HozTop: `int` Superior threshold value
         HozBottom: `int` Superior threshold value
-        porc: `float` porcentage to adjust surface's geometry in UNWARPED_SIZE
+        porc: `float` percentage to adjust surface's geometry in UNWARPED_SIZE
     Returns:
         M: `numpy.darray` transformation matrix 
         INVM: `numpy.darray` inverse of transformation matrix 
         src_points: `np.array` original size (p1, p2, p3, p4) [pix]
-        dst_points: `np.array` unwarped size (p1, p2, p3, p4) [pix]
-        size_points: `np.array` unwarped size (p1, p2, p3, p4) [pix]
+        dst_points: `np.array` Unwarped size (p1, p2, p3, p4) [pix]
+        size_points: `np.array` Unwarped size (p1, p2, p3, p4) [pix]
         vp: `tuple` vanishing point (x, y) [pix]
     """ 
 
@@ -829,8 +827,8 @@ def load_camera_projection(folder_path = "", projection_file = ""):
         M: `numpy.darray` transformation matrix 
         INVM: `numpy.darray` inverse of transformation matrix 
         src_points: `np.array` original size (p1, p2, p3, p4) [pix]
-        dst_points: `np.array` unwarped size (p1, p2, p3, p4) [pix]
-        size_points: `np.array` unwarped size (p1, p2, p3, p4) [pix]
+        dst_points: `np.array` Unwarped size (p1, p2, p3, p4) [pix]
+        size_points: `np.array` Unwarped size (p1, p2, p3, p4) [pix]
         vp: `tuple` vanishing point (x, y) [pix]
     """
 
@@ -860,7 +858,7 @@ def draw_projection_parameters(img_src, UNWARPED_SIZE, M, src_points, dst_points
     """ Draw projection geometries in original and projection image
     Args:
         img_src: `cv2.math` input image to draw projection parameters
-        UNWARPED_SIZE: `tuple` unwarped size (widht, height) [pix]
+        UNWARPED_SIZE: `tuple` unwarped size (width, height) [pix]
         M: `numpy.darray` transformation matrix 
         src_points: `np.array` source points (p1, p2, p3, p4) [pix]
         dst_points: `np.array` src_points in projection space (p1, p2, p3, p4) [pix]
@@ -908,7 +906,7 @@ def draw_projection_parameters(img_src, UNWARPED_SIZE, M, src_points, dst_points
     cv2.circle(img_src, tuple(vp), 5, (0, 255, 255), -1) 
     print_list_text(
         img_src = img_src, str_list = ("vp", ""), origin = (int(vp[0]+10), int(vp[1] -10)), 
-        color = (0, 255, 255), thickness = 1, fontScale = 0.45)
+        color = (0, 255, 255), thickness = 1, fontScale = 0.8)
 
     # Draw points and lines of surface projection
     for idx, pt in enumerate(src_points):
@@ -916,7 +914,7 @@ def draw_projection_parameters(img_src, UNWARPED_SIZE, M, src_points, dst_points
         cv2.circle(img_src, tuple(pt), 5, (0, 0, 255), -1) 
         print_list_text(
             img_src = img_src, str_list = ("p{}".format(idx), ""), origin = (int(pt[0]+10), int(pt[1] -10)), 
-            color = (0, 0, 255), thickness = 1, fontScale = 0.45)
+            color = (0, 0, 255), thickness = 1, fontScale = 0.8)
     
     # Draw geometry of surface projection in original image
     for idx, pt in enumerate(size_points):
@@ -924,7 +922,9 @@ def draw_projection_parameters(img_src, UNWARPED_SIZE, M, src_points, dst_points
         cv2.circle(img_src, tuple(pt), 5, (0, 255, 0), -1) 
         print_list_text(
             img_src = img_src, str_list = ("psz{}".format(idx), ""), origin = (int(pt[0]+10), int(pt[1])), 
-            color = (0, 255, 0), thickness = 1, fontScale = 0.45)
+            color = (0, 255, 0), thickness = 1, fontScale = 0.8)
+
+    cv2.imshow("draw_projection_parameters", img_src); cv2.waitKey(0)
 
     # Resize images
     img_src = cv2.resize(
@@ -961,7 +961,7 @@ def get_binary_mask(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT
     # Apply convolution filter to smooth the image
     img_filt = cv2.bilateralFilter(
         src = img_src, d = FILT_KERN, sigmaColor = FILT_KERN, sigmaSpace = FILT_KERN)
-    # cv2.imshow("image_filtered", img_filt)
+    # cv2.imshow("image_filtered", img_filt); cv2.waitKey(0)
 
     # Crete a mask/ Binary image to find the lane lines
     mask = np.zeros((img_filt.shape[0], img_filt.shape[1], 1), dtype=np.uint8)
@@ -979,7 +979,7 @@ def get_binary_mask(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT
 
         # Conbine masks with OR operation
         mask = cv2.bitwise_or(mask, img_tresh)
-    # cv2.imshow("binary_mask", mask_1)
+    # cv2.imshow("binary_mask", mask); cv2.waitKey(0)
 
     return mask
 
@@ -993,10 +993,10 @@ def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50):
         minpix: `int` minimum number of pixels found to recenter window
     Returns:
         out_img: `cv2.math` binary mask with windows for linear regression drawn
-        leftx: `numpy.ndarray` x coordiantes for linear regression of left lane line 
-        lefty: `numpy.ndarray` y coordiantes for linear regression of left lane line 
-        rightx: `numpy.ndarray` x coordiantes for linear regression of right lane line 
-        righty: `numpy.ndarray` y coordiantes for linear regression of right lane line
+        leftx: `numpy.ndarray` x coordinates for linear regression of left lane line 
+        lefty: `numpy.ndarray` y coordinates for linear regression of left lane line 
+        rightx: `numpy.ndarray` x coordinates for linear regression of right lane line 
+        righty: `numpy.ndarray` y coordinates for linear regression of right lane line
     """
 
     # Take a histogram of the bottom half of the image
@@ -1011,7 +1011,7 @@ def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50):
     leftx_base = np.argmax(histogram[:midpoint])
     rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
-    # Set height of windows - based on nwindows above and image shape
+    # Set height of windows - based on n windows above and image shape
     window_height = np.int(binary_warped.shape[0]//nwindows)
     
     # Identify the x and y positions of all nonzero pixels in the image
@@ -1019,11 +1019,11 @@ def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50):
     nonzeroy = np.array(nonzero[0])
     nonzerox = np.array(nonzero[1])
     
-    # Current positions to be updated later for each window in nwindows
+    # Current positions to be updated later for each window in n windows
     leftx_current = leftx_base
     rightx_current = rightx_base
 
-    # Create empty lists to receive left and right lane pixel indices
+    # Create empty lists to receive left and right lane pixel indexes
     left_lane_inds = []
     right_lane_inds = []
 
@@ -1132,7 +1132,7 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src
     img_src_text = (
         src_name, 
         "Radius of curvature = {} [m]".format(0), 
-        "vehcicle is {} [m] {} of center".format(round(0, 2), "side"))
+        "vehicle is {} [m] {} of center".format(round(0, 2), "side"))
     img_pro_text = ("sky_view", "")
 
    # Draw surface projection parameters
@@ -1178,8 +1178,8 @@ if __name__ == "__main__":
     #     calibration_file = cam_calibration_file,
     #     folder_path = cam_calibration_folder, 
     #     n_x = chessboard_hori_div, 
-    #     n_y = chessboard_vert_div
-    #     )
+    #     n_y = chessboard_vert_div,
+    #     show_drawings = True)
 
     # Load camera calibration from file
     mtx, dist = load_camera_calibration(
@@ -1206,12 +1206,13 @@ if __name__ == "__main__":
         gradients or other methods to create a thresholded binary image. Provide 
         an example of a binary image result.
     """
-
+    
     img_list = os.listdir(folder_dir_image)     # Images list
     video_list = os.listdir(folder_dir_video)   # Videos list
 
     # Tuning/Reading color space model parameters
-    img = cv2.imread(os.path.join(folder_dir_image, img_list[0]))
+    img_proj_ref = "straight_lines1.jpg"
+    img = cv2.imread(os.path.join(folder_dir_image, img_proj_ref))
     YHmin, YSmin, YVmin, YHmax, YSmax, YVmax = color_range_tunner(
         img_src = img, tune = Tune_ranges, conf_file_path = './yellow_conf_hsv.npz', space_model = cv2.COLOR_BGR2HSV)
     WHmin, WSmin, WVmin, WHmax, WSmax, WVmax = color_range_tunner(
@@ -1239,16 +1240,15 @@ if __name__ == "__main__":
 
     # Read reference image to find projection
     projection_file = "projection_params.npz"
-    img_proj_ref = "straight_lines1.jpg"
     UNWARPED_SIZE = (1280, 700)
     VERT_TRESH = 0.6
 
     # Read reference image to find surface projection parameters
     img_src = cv2.imread(os.path.join(folder_dir_image, img_proj_ref))
-    
+    # cv2.imwrite(os.path.join("./writeup_files", "img_src.jpg"), img_src)
+
     # Find lane lines in image
-    Lm, Lb, Rm, Rb, Left_Lines, Right_Lines = \
-        find_lanelines(
+    Lm, Lb, Rm, Rb, Left_Lines, Right_Lines = find_lanelines(
             img_src = img_src.copy(),
             COLOR_TRESH_MIN = COLOR_TRESH_MIN, 
             COLOR_TRESH_MAX = COLOR_TRESH_MAX, 
@@ -1262,7 +1262,8 @@ if __name__ == "__main__":
         UNWARPED_SIZE = UNWARPED_SIZE, 
         Lm = Lm, Lb = Lb, Rm = Rm, Rb = Rb,
         folder_path = cam_calibration_folder, 
-        projection_file = projection_file)
+        projection_file = projection_file,
+        HozTop = 40, HozBottom = 0, porc = 0.3)
 
     # Load projection parameters
     M, INVM, src_points, dst_points, size_points, vp = load_camera_projection(
@@ -1285,7 +1286,7 @@ if __name__ == "__main__":
 
     # Get perspective transformation
     img_proj = cv2.warpPerspective(dsize = UNWARPED_SIZE, src = img_src, M = M)
-    
+
     img_proj_mask = get_binary_mask(
         COLOR_TRESH_MIN = COLOR_TRESH_MIN, 
         COLOR_TRESH_MAX = COLOR_TRESH_MAX, 
@@ -1299,7 +1300,7 @@ if __name__ == "__main__":
         nwindows = nwindows, 
         margin = margin, 
         minpix = minpix)
-    
+
     # -------------------------------------------------------------------------
     """
     5.  Describe how (and identify where in your code) you calculated the radius
@@ -1330,6 +1331,8 @@ if __name__ == "__main__":
 
     # -------------------------------------------------------------------------
     # IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - I
+
+    exit()
 
     # Read every images in folder 
     for idx in range(0, len(img_list)):
