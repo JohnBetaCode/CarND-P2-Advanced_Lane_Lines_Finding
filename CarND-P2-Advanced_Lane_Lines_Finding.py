@@ -853,7 +853,10 @@ def load_camera_projection(folder_path = "", projection_file = ""):
     # Return loaded parameters
     return M, INVM, src_points, dst_points, size_points, vp
 
-def draw_projection_parameters(img_src, UNWARPED_SIZE, M, src_points, dst_points, size_points, vp, img_src_text = (), img_pro_text = ()):
+def draw_projection_parameters(
+    img_src, UNWARPED_SIZE, M, src_points, dst_points, 
+    size_points, vp, img_src_text = (), img_pro_text = (), 
+    draw_inner_projection = True, draw_inner_geoemtry = True, draw_outer_geoemtry = True):
     
     """ Draw projection geometries in original and projection image
     Args:
@@ -866,6 +869,9 @@ def draw_projection_parameters(img_src, UNWARPED_SIZE, M, src_points, dst_points
         vp: `tuple` vanishing point (x, y) [pix]
         img_src_text: `list` list with text to print in original image source
         img_pro_text: `list` list with text to print in projection image
+        draw_inner_projection: `bolean` Enable/Disable inner projection drawing
+        draw_inner_geoemtry: `bolean` Enable/Disable inner geometry drawing
+        draw_outer_geoemtry: `bolean` Enable/Disable outer geometry drawing
     Returns:
     """
 
@@ -875,56 +881,61 @@ def draw_projection_parameters(img_src, UNWARPED_SIZE, M, src_points, dst_points
     # Get perspective transformation
     img_proj = cv2.warpPerspective(dsize = UNWARPED_SIZE, src = img_src, M = M)
 
-    # Draw road surface projection over original image
-    cv2.drawContours(
-        image = img_src, contours = [src_points.astype(int)], 
-            contourIdx = 0, color = (0, 255, 0), thickness = -1)
+    if draw_inner_projection:
+        # Draw road surface projection over original image
+        cv2.drawContours(
+            image = img_src, contours = [src_points.astype(int)], 
+                contourIdx = 0, color = (0, 255, 0), thickness = -1)
 
-    # Overlay road surface projection over original image
-    img_src = cv2.addWeighted(
-        src1 = img_src_cop, src2 = img_src, 
-        alpha = 0.7, beta = 0.3, gamma = 0)
+        # Overlay road surface projection over original image
+        img_src = cv2.addWeighted(
+            src1 = img_src_cop, src2 = img_src, 
+            alpha = 0.7, beta = 0.3, gamma = 0)
 
     thickness = 2 # Lines thickness
-    dotline(src = img_src, p1 = tuple(vp), p2 = tuple(src_points[0]), 
-            color = (0, 255, 255), thickness = thickness, Dl = 10)
-    dotline(src = img_src, p1 = tuple(vp), p2 = tuple(src_points[1]), 
-            color = (0, 255, 255), thickness = thickness, Dl = 10)
-    dotline(src = img_src, p1 = (0, vp[1]), p2 = (img_src.shape[1], vp[1]), 
-            color = (0, 255, 255), thickness = thickness, Dl = 10)
+    if draw_outer_geoemtry:
+        dotline(src = img_src, p1 = tuple(vp), p2 = tuple(src_points[0]), 
+                color = (0, 255, 255), thickness = thickness, Dl = 10)
+        dotline(src = img_src, p1 = tuple(vp), p2 = tuple(src_points[1]), 
+                color = (0, 255, 255), thickness = thickness, Dl = 10)
+        dotline(src = img_src, p1 = (0, vp[1]), p2 = (img_src.shape[1], vp[1]), 
+                color = (0, 255, 255), thickness = thickness, Dl = 10)
 
-    cv2.line(img_src, tuple(size_points[0]), tuple(size_points[1]), (0, 255, 0), thickness)
-    cv2.line(img_src, tuple(size_points[1]), tuple(size_points[2]), (0, 255, 0), thickness)
-    cv2.line(img_src, tuple(size_points[2]), tuple(size_points[3]), (0, 255, 0), thickness)
-    cv2.line(img_src, tuple(size_points[3]), tuple(size_points[0]), (0, 255, 0), thickness)
+    if draw_outer_geoemtry:
+        cv2.line(img_src, tuple(size_points[0]), tuple(size_points[1]), (0, 255, 0), thickness)
+        cv2.line(img_src, tuple(size_points[1]), tuple(size_points[2]), (0, 255, 0), thickness)
+        cv2.line(img_src, tuple(size_points[2]), tuple(size_points[3]), (0, 255, 0), thickness)
+        cv2.line(img_src, tuple(size_points[3]), tuple(size_points[0]), (0, 255, 0), thickness)
 
-    cv2.line(img_src, tuple(src_points[0]), tuple(src_points[3]), (0, 0, 255), thickness)
-    cv2.line(img_src, tuple(src_points[1]), tuple(src_points[2]), (0, 0, 255), thickness)
+    if draw_inner_geoemtry:
+        cv2.line(img_src, tuple(src_points[0]), tuple(src_points[3]), (0, 0, 255), thickness)
+        cv2.line(img_src, tuple(src_points[1]), tuple(src_points[2]), (0, 0, 255), thickness)
 
     # Draw vanishing point
-    cv2.circle(img_src, tuple(vp), 8, (0, 0, 0), -1) 
-    cv2.circle(img_src, tuple(vp), 5, (0, 255, 255), -1) 
-    print_list_text(
-        img_src = img_src, str_list = ("vp", ""), origin = (int(vp[0]+10), int(vp[1] -10)), 
-        color = (0, 255, 255), thickness = 1, fontScale = 0.8)
+    if draw_outer_geoemtry:
+        cv2.circle(img_src, tuple(vp), 8, (0, 0, 0), -1) 
+        cv2.circle(img_src, tuple(vp), 5, (0, 255, 255), -1) 
+        print_list_text(
+            img_src = img_src, str_list = ("vp", ""), origin = (int(vp[0]+10), int(vp[1] -10)), 
+            color = (0, 255, 255), thickness = 1, fontScale = 0.8)
 
     # Draw points and lines of surface projection
-    for idx, pt in enumerate(src_points):
-        cv2.circle(img_src, tuple(pt), 8, (0, 0, 0), -1) 
-        cv2.circle(img_src, tuple(pt), 5, (0, 0, 255), -1) 
-        print_list_text(
-            img_src = img_src, str_list = ("p{}".format(idx), ""), origin = (int(pt[0]+10), int(pt[1] -10)), 
-            color = (0, 0, 255), thickness = 1, fontScale = 0.8)
+    if draw_inner_geoemtry:
+        for idx, pt in enumerate(src_points):
+            cv2.circle(img_src, tuple(pt), 8, (0, 0, 0), -1) 
+            cv2.circle(img_src, tuple(pt), 5, (0, 0, 255), -1) 
+            print_list_text(
+                img_src = img_src, str_list = ("p{}".format(idx), ""), origin = (int(pt[0]+10), int(pt[1] -10)), 
+                color = (0, 0, 255), thickness = 1, fontScale = 0.8)
     
     # Draw geometry of surface projection in original image
-    for idx, pt in enumerate(size_points):
-        cv2.circle(img_src, tuple(pt), 8, (0, 0, 0), -1) 
-        cv2.circle(img_src, tuple(pt), 5, (0, 255, 0), -1) 
-        print_list_text(
+    if draw_outer_geoemtry:
+        for idx, pt in enumerate(size_points):
+            cv2.circle(img_src, tuple(pt), 8, (0, 0, 0), -1) 
+            cv2.circle(img_src, tuple(pt), 5, (0, 255, 0), -1) 
+            print_list_text(
             img_src = img_src, str_list = ("psz{}".format(idx), ""), origin = (int(pt[0]+10), int(pt[1])), 
             color = (0, 255, 0), thickness = 1, fontScale = 0.8)
-
-    cv2.imshow("draw_projection_parameters", img_src); cv2.waitKey(0)
 
     # Resize images
     img_src = cv2.resize(
@@ -983,7 +994,7 @@ def get_binary_mask(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT
 
     return mask
 
-def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50):
+def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50, draw_windows = True):
 
     """ Get a binary mask from color space models thresholds
     Args:
@@ -991,6 +1002,7 @@ def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50):
         nwindows: `int` Number of sliding windows
         margin: `int` width of the windows +/- margin
         minpix: `int` minimum number of pixels found to recenter window
+        draw_windows: `bolean` Enable/Disable windows drawings
     Returns:
         out_img: `cv2.math` binary mask with windows for linear regression drawn
         leftx: `numpy.ndarray` x coordinates for linear regression of left lane line 
@@ -1041,11 +1053,12 @@ def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50):
         win_xright_high = rightx_current + margin
         
         # Draw the windows on the visualization image
-        cv2.rectangle(out_img,(win_xleft_low, win_y_low),
-        (win_xleft_high,win_y_high),(0,255,0), 2) 
+        if draw_windows:
+            cv2.rectangle(out_img,(win_xleft_low, win_y_low),
+            (win_xleft_high,win_y_high),(255,0, 255), 2) 
 
-        cv2.rectangle(out_img,(win_xright_low, win_y_low),
-        (win_xright_high, win_y_high), (0, 255, 0), 2) 
+            cv2.rectangle(out_img,(win_xright_low, win_y_low),
+            (win_xright_high, win_y_high), (255, 0, 255), 2) 
         
         # Identify the nonzero pixels in x and y within the window ###
         good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & 
@@ -1090,12 +1103,13 @@ def fit_polynomial(binary_warped, nwindows = 9, margin = 100, minpix = 50):
         left_fit: `numpy.ndarray` second order linear regression of left lane line
         right_fit: `numpy.ndarray` second order linear regression of right lane line
         out_img: `cv2.math` binary mask image with linear regression and windows drawings
+        surface_geometry: `list` list of coordinates with road surface projection
     """
 
     # Find our lane pixels first
     leftx, lefty, rightx, righty, out_img = find_lane_pixels(
         nwindows = nwindows, margin = margin, minpix = minpix,
-        binary_warped = binary_warped)
+        binary_warped = binary_warped, draw_windows = True)
 
     # Fit a second order polynomial to each using `np.polyfit`
     left_fit = np.polyfit(lefty, leftx, 2)
@@ -1112,22 +1126,48 @@ def fit_polynomial(binary_warped, nwindows = 9, margin = 100, minpix = 50):
         left_fitx = 1*ploty**2 + 1*ploty
         right_fitx = 1*ploty**2 + 1*ploty
 
+    surface_geometry = []
+
+    for y, x in enumerate(right_fitx):
+        cv2.circle(img = out_img, center = (int(x), int(y)), radius = 5, color = (0, 255, 255), thickness = -1) 
+        surface_geometry.append((int(x), int(y)))
+    surface_geometry.reverse()
+    print(type(surface_geometry))
+
     # Plots the left and right polynomials on the lane lines
     for y, x in enumerate(left_fitx):
         cv2.circle(img = out_img, center = (int(x), int(y)), radius = 5, color = (0, 255, 255), thickness = -1) 
-    
-    for y, x in enumerate(right_fitx):
-        cv2.circle(img = out_img, center = (int(x), int(y)), radius = 5, color = (0, 255, 255), thickness = -1) 
+        surface_geometry.append((int(x), int(y)))
 
     # Colors in the left and right lane regions
     out_img[lefty, leftx] = [255, 0, 0]     # Print left lane line in blue
     out_img[righty, rightx] = [0, 0, 255]   # Print right lane line in red
 
     # Return regressions of left and right lane lines
-    return left_fit, right_fit, out_img
+    return left_fit, right_fit, surface_geometry, out_img
 
 def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src_points,
-                 dst_points, vp, M, src_name =""):
+                 dst_points, vp, M, INVM, surface_geometry, src_name =""):
+
+    """ Draw results of surface projection, curvature and others
+    Args:
+        img_src: `cv2.math` DESCRIPTION
+        img_pro: `cv2.math` DESCRIPTION
+        img_pro_mask: `cv2.math` DESCRIPTION
+        UNWARPED_SIZE: `tuple` Unwarped size (width, height)
+        src_points: `np.array` original size (p1, p2, p3, p4) [pix]
+        dst_points: `np.array` Unwarped size (p1, p2, p3, p4) [pix]
+        size_points: `np.array` Unwarped size (p1, p2, p3, p4) [pix]
+        vp: `tuple` vanishing point (x, y) [pix]
+        M: `numpy.darray` transformation matrix 
+        INVM: `numpy.darray` inverse of transformation matrix 
+        surface_geometry: `list` list of coordinates with road surface projection
+        src_name: `string` name of image source file
+    Returns:
+        img_res: `cv2.math` image with drawings
+    """
+
+    img_res = img_src.copy()
 
     img_src_text = (
         src_name, 
@@ -1135,11 +1175,39 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src
         "vehicle is {} [m] {} of center".format(round(0, 2), "side"))
     img_pro_text = ("sky_view", "")
 
+    for idx, pt in enumerate(surface_geometry):
+        surface_geometry[idx] = get_projection_point_src((pt[0], pt[1], 1), INVM)
+
+    cv2.drawContours(
+        image = img_res, contours = [np.array(surface_geometry)], 
+        contourIdx = 0, color = (0, 255, 0), thickness = -1)
+
+    # Draw left line from linear regresion
+    for pt in surface_geometry[0: int(len(surface_geometry)*0.5)]:
+        cv2.circle(img_res, tuple(pt), 6, (0, 0, 255), -1) 
+    # Draw left line from linear regresion
+    for pt in surface_geometry[int(len(surface_geometry)*0.5):]:
+        cv2.circle(img_res, tuple(pt), 6, (255, 0, 0), -1) 
+
+    # Overlay road surface projection over original image
+    img_src = cv2.addWeighted(
+        src1 = img_res , src2 = img_src, 
+        alpha = 0.3, beta = 1., gamma = 0)
+
    # Draw surface projection parameters
     img_res = draw_projection_parameters(
-        UNWARPED_SIZE = UNWARPED_SIZE, size_points = size_points, src_points = src_points, 
-        dst_points = dst_points, img_src = img_src.copy(), vp = vp, M = M, 
-        img_src_text = img_src_text, img_pro_text = img_pro_text)
+        UNWARPED_SIZE = UNWARPED_SIZE, 
+        size_points = size_points, 
+        src_points = src_points, 
+        dst_points = dst_points, 
+        img_src = img_src.copy(), 
+        vp = vp, 
+        M = M, 
+        img_src_text = img_src_text, 
+        img_pro_text = img_pro_text,
+        draw_inner_projection = False, 
+        draw_inner_geoemtry = False, 
+        draw_outer_geoemtry = True)
 
     img_proj_mask = cv2.resize(src = img_pro_mask, dsize = (300, img_res.shape[0]), interpolation = cv2.INTER_AREA)
     img_res = np.concatenate((img_res, img_proj_mask), axis = 1)
@@ -1295,7 +1363,7 @@ if __name__ == "__main__":
         VERT_TRESH = 0, 
         FILT_KERN= 20)
 
-    left_fit, right_fit, img_proj_mask = fit_polynomial(
+    left_fit, right_fit, surface_geometry, img_proj_mask = fit_polynomial(
         binary_warped = img_proj_mask,
         nwindows = nwindows, 
         margin = margin, 
@@ -1307,6 +1375,8 @@ if __name__ == "__main__":
         of curvature of the lane and the position of the vehicle with respect to 
         center.
     """
+
+
 
     # -------------------------------------------------------------------------
     """
@@ -1324,6 +1394,8 @@ if __name__ == "__main__":
             src_points = src_points, 
             dst_points = dst_points,
             src_name =  img_proj_ref,
+            surface_geometry = surface_geometry,
+            INVM = INVM,
             vp = vp, 
             M = M)
     cv2.imshow(results_window_name, img_res); cv2.waitKey(0)
@@ -1331,8 +1403,6 @@ if __name__ == "__main__":
 
     # -------------------------------------------------------------------------
     # IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - I
-
-    exit()
 
     # Read every images in folder 
     for idx in range(0, len(img_list)):
