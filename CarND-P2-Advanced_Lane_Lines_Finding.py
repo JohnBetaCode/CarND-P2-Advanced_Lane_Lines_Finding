@@ -1,14 +1,14 @@
 # =============================================================================
 """
 Code Information:
-    Date:         02/23/2019
+    Date:         02/25/2019
 	Programmer: John A. Betancourt G.
 	Phone: +57 (311) 813 7206 / +57 (350) 283 51 22
 	Mail: john.betancourt93@gmail.com / john@kiwicampus.com
     Web: www.linkedin.com/in/jhon-alberto-betancourt-gonzalez-345557129
 
 Description: Project 2 - Udacity - self driving cars Nanodegree
-    Advanced Lane Lines Finding on the Road
+    Advanced Road Lane Lines Finding
 
 Tested on: 
     python 2.7 (3.X should work)
@@ -861,7 +861,7 @@ def draw_projection_parameters(
     """ Draw projection geometries in original and projection image
     Args:
         img_src: `cv2.math` input image to draw projection parameters
-        UNWARPED_SIZE: `tuple` unwarped size (width, height) [pix]
+        UNWARPED_SIZE: `tuple` Unwarped size (width, height) [pix]
         M: `numpy.darray` transformation matrix 
         src_points: `np.array` source points (p1, p2, p3, p4) [pix]
         dst_points: `np.array` src_points in projection space (p1, p2, p3, p4) [pix]
@@ -869,9 +869,9 @@ def draw_projection_parameters(
         vp: `tuple` vanishing point (x, y) [pix]
         img_src_text: `list` list with text to print in original image source
         img_pro_text: `list` list with text to print in projection image
-        draw_inner_projection: `bolean` Enable/Disable inner projection drawing
-        draw_inner_geoemtry: `bolean` Enable/Disable inner geometry drawing
-        draw_outer_geoemtry: `bolean` Enable/Disable outer geometry drawing
+        draw_inner_projection: `boolean` Enable/Disable inner projection drawing
+        draw_inner_geoemtry: `boolean` Enable/Disable inner geometry drawing
+        draw_outer_geoemtry: `boolean` Enable/Disable outer geometry drawing
     Returns:
     """
 
@@ -988,7 +988,7 @@ def get_binary_mask(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT
             lowerb = COLOR_TRESH_MIN[idx], 
             upperb = COLOR_TRESH_MAX[idx])
 
-        # Conbine masks with OR operation
+        # Combine masks with OR operation
         mask = cv2.bitwise_or(mask, img_tresh)
     # cv2.imshow("binary_mask", mask); cv2.waitKey(0)
 
@@ -1002,7 +1002,7 @@ def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50, dra
         nwindows: `int` Number of sliding windows
         margin: `int` width of the windows +/- margin
         minpix: `int` minimum number of pixels found to recenter window
-        draw_windows: `bolean` Enable/Disable windows drawings
+        draw_windows: `boolean` Enable/Disable windows drawings
     Returns:
         out_img: `cv2.math` binary mask with windows for linear regression drawn
         leftx: `numpy.ndarray` x coordinates for linear regression of left lane line 
@@ -1132,7 +1132,6 @@ def fit_polynomial(binary_warped, nwindows = 9, margin = 100, minpix = 50):
         cv2.circle(img = out_img, center = (int(x), int(y)), radius = 5, color = (0, 255, 255), thickness = -1) 
         surface_geometry.append((int(x), int(y)))
     surface_geometry.reverse()
-    print(type(surface_geometry))
 
     # Plots the left and right polynomials on the lane lines
     for y, x in enumerate(left_fitx):
@@ -1147,7 +1146,8 @@ def fit_polynomial(binary_warped, nwindows = 9, margin = 100, minpix = 50):
     return left_fit, right_fit, surface_geometry, out_img
 
 def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src_points,
-                 dst_points, vp, M, INVM, surface_geometry, src_name =""):
+                 dst_points, vp, M, INVM, surface_geometry, src_name ="", right_curvature = 1,
+                 left_curvature = 1, car_lane_pos = 1):
 
     """ Draw results of surface projection, curvature and others
     Args:
@@ -1163,16 +1163,24 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src
         INVM: `numpy.darray` inverse of transformation matrix 
         surface_geometry: `list` list of coordinates with road surface projection
         src_name: `string` name of image source file
+        right_curvature: `float` [m] curvature of left lane line
+        left_curvature: `float` [m] curvature of right lane line
+        car_lane_pos: `float` [m] position of the vehicle with respect to center 
+
     Returns:
         img_res: `cv2.math` image with drawings
     """
 
     img_res = img_src.copy()
 
+    side = "left" if car_lane_pos < 0 else "right"
+
     img_src_text = (
         src_name, 
-        "Radius of curvature = {} [m]".format(0), 
-        "vehicle is {} [m] {} of center".format(round(0, 2), "side"))
+        "Radius of curvature = {} [m]".format(round(abs(left_curvature+right_curvature)*0.5, 2)),
+        "Left of curvature = {} [m]".format(round(left_curvature, 2)), 
+        "Right of curvature = {} [m]".format(round(right_curvature, 2)),  
+        "vehicle is {} [m] {} of center".format(round(abs(car_lane_pos), 2), side))
     img_pro_text = ("sky_view", "")
 
     for idx, pt in enumerate(surface_geometry):
@@ -1182,10 +1190,10 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src
         image = img_res, contours = [np.array(surface_geometry)], 
         contourIdx = 0, color = (0, 255, 0), thickness = -1)
 
-    # Draw left line from linear regresion
+    # Draw left line from linear regression
     for pt in surface_geometry[0: int(len(surface_geometry)*0.5)]:
         cv2.circle(img_res, tuple(pt), 6, (0, 0, 255), -1) 
-    # Draw left line from linear regresion
+    # Draw left line from linear regression
     for pt in surface_geometry[int(len(surface_geometry)*0.5):]:
         cv2.circle(img_res, tuple(pt), 6, (255, 0, 0), -1) 
 
@@ -1214,6 +1222,90 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src
 
     return img_res
 
+def find_pix_meter_relations(UNWARPED_SIZE, left_fit, right_fit, x_distance_m = 3.7, y_distance_m = 30.):
+
+    """ Calculate vertical and horizontal pixel to meters relation
+    Args:
+        UNWARPED_SIZE: `tuple` Unwarped size (width, height)
+        left_fit: `numpy.ndarray` second order linear regression of left lane line
+        right_fit: `numpy.ndarray` second order linear regression of right lane line
+        x_distance_m: `float` [m] road width or distance between lane lines
+        y_distance_m: `float` [m] length of lane line
+    Returns:
+        xm_per_pix: `float` [m/pix] horizontal pixel to meters relation
+        ym_per_pix: `float` [m/pix] vertical pixel to meters relation
+    """
+
+    # Calculate the width of road in pixels
+    y = UNWARPED_SIZE[1]
+    left_fitx = left_fit[0]*y**2 + left_fit[1]*y + left_fit[2]
+    right_fitx = right_fit[0]*y**2 + right_fit[1]*y + right_fit[2]
+    x_distance_pix = abs(left_fitx - right_fitx)
+
+    y_distance_pix = 1
+
+    # Define conversions in x and y from pixels space to meters
+    ym_per_pix = y_distance_m/y_distance_pix # meters per pixel in y dimension
+    xm_per_pix = x_distance_m/x_distance_pix # meters per pixel in x dimension
+
+    # Print information
+    spacer = 33
+    print(bcolors.OKBLUE + "[INFO]: Pixels relations calculated\n" + bcolors.ENDC)
+    print("\t"+"-"*spacer); print("\t| xm_per_pix \t| ym_per_pix\t|"); print("\t"+"-"*spacer)
+    print("\t| {}\t| {},\t\t|".format(round(xm_per_pix, 4), round(ym_per_pix, 4)))
+    print("\t" + "-"*spacer + "\n")
+
+    return xm_per_pix, ym_per_pix
+
+def measure_curvature(left_fit, right_fit, ym_per_pix =1., y_eval = 0):
+
+    """ Calculate left and right lane line curvature
+    Args:
+        UNWARPED_SIZE: `tuple` Unwarped size (width, height)
+        left_fit: `numpy.ndarray` second order linear regression of left lane line
+        right_fit: `numpy.ndarray` second order linear regression of right lane line
+        xm_per_pix: `float` [m/pix] horizontal pixel to meters relation
+        ym_per_pix: `float` [m/pix] vertical pixel to meters relation
+        y_eval: `int` value to evaluate curvature
+    Returns:
+        right_curvature: `float` [m] curvature of left lane line
+        left_curvature: `float` [m] curvature of right lane line
+    """
+
+    Ar = right_fit[0]; Br = right_fit[1]; 
+    Al = left_fit[0]; Bl = left_fit[1]; 
+    
+    # Define y-value where we want radius of curvature
+    # We'll choose the maximum y-value, corresponding to the bottom of the image
+    y_eval = 1*ym_per_pix
+
+    # Calculation of R_curve (radius of curvature)
+    right_curvature = ((1 + (2*Ar*y_eval + Br)**2)**1.5) / np.absolute(2*Ar)
+    left_curvature = ((1 + (2*Al*y_eval + Bl)**2)**1.5) / np.absolute(2*Al)
+
+    return right_curvature, left_curvature
+
+def get_car_road_position(left_fit, right_fit, xm_per_pix, UNWARPED_SIZE):
+
+    """ Calculate position of the vehicle with respect to center of road
+    Args:
+        UNWARPED_SIZE: `tuple` Unwarped size (width, height)
+        left_fit: `numpy.ndarray` second order linear regression of left lane line
+        right_fit: `numpy.ndarray` second order linear regression of right lane line
+        xm_per_pix: `float` [m/pix] vertical pixel to meters relation
+    Returns:
+        car_lane_pos: `float` [m] position of the vehicle with respect to center of road
+    """
+
+    left_fitx  = left_fit[0]*UNWARPED_SIZE[1]**2 + left_fit[1]*UNWARPED_SIZE[1] + left_fit[2]
+    right_fitx = right_fit[0]*UNWARPED_SIZE[1]**2 + right_fit[1]*UNWARPED_SIZE[1] + right_fit[2]
+    x_distance_pix = int(left_fitx + abs(left_fitx - right_fitx)*0.5)
+
+    car_lane_pos = x_distance_pix - UNWARPED_SIZE[0]*0.5
+    car_lane_pos = car_lane_pos*xm_per_pix
+
+    return car_lane_pos
+
 # =============================================================================
 # MAIN FUNCTION - MAIN FUNCTION - MAIN FUNCTION - MAIN FUNCTION - MAIN FUNCTION
 # =============================================================================
@@ -1226,7 +1318,7 @@ if __name__ == "__main__":
     out_folder_image = "./output_images" # Output folder for images
     out_folder_video = "./output_videos" # Output folder for videos
     Tune_ranges  = False # Enable/Disable parameters tuning
-    Save_results = True # Enable/Disable results saving
+    Save_results = False # Enable/Disable results saving
     results_window_name = "surface_projection_result"
 
     # -------------------------------------------------------------------------
@@ -1355,6 +1447,7 @@ if __name__ == "__main__":
     # Get perspective transformation
     img_proj = cv2.warpPerspective(dsize = UNWARPED_SIZE, src = img_src, M = M)
 
+    # Get a binary mask from color space models thresholds
     img_proj_mask = get_binary_mask(
         COLOR_TRESH_MIN = COLOR_TRESH_MIN, 
         COLOR_TRESH_MAX = COLOR_TRESH_MAX, 
@@ -1363,6 +1456,7 @@ if __name__ == "__main__":
         VERT_TRESH = 0, 
         FILT_KERN= 20)
 
+    # Get polynomial regression for left and right lane line
     left_fit, right_fit, surface_geometry, img_proj_mask = fit_polynomial(
         binary_warped = img_proj_mask,
         nwindows = nwindows, 
@@ -1376,7 +1470,24 @@ if __name__ == "__main__":
         center.
     """
 
+    xm_per_pix, ym_per_pix = find_pix_meter_relations(
+        UNWARPED_SIZE = UNWARPED_SIZE,
+        right_fit = right_fit,
+        left_fit = left_fit,
+        x_distance_m = 3.7, 
+        y_distance_m = 30.)
 
+    right_curvature, left_curvature = measure_curvature(
+        right_fit = right_fit, 
+        left_fit = left_fit, 
+        ym_per_pix =1., 
+        y_eval = UNWARPED_SIZE[1])
+
+    car_lane_pos = get_car_road_position(
+        left_fit = left_fit, 
+        right_fit = right_fit, 
+        xm_per_pix = xm_per_pix, 
+        UNWARPED_SIZE = UNWARPED_SIZE)
 
     # -------------------------------------------------------------------------
     """
@@ -1386,15 +1497,18 @@ if __name__ == "__main__":
 
     # Draw and how results 
     img_res = draw_results(
-            img_pro_mask = img_proj_mask, 
-            img_src = img_src, 
-            img_pro = img_src, 
+            surface_geometry = surface_geometry,
+            right_curvature = right_curvature,
+            left_curvature = left_curvature,
+            car_lane_pos = car_lane_pos,
             UNWARPED_SIZE = UNWARPED_SIZE, 
+            img_pro_mask = img_proj_mask,
+            src_name =  img_proj_ref,
             size_points = size_points, 
             src_points = src_points, 
             dst_points = dst_points,
-            src_name =  img_proj_ref,
-            surface_geometry = surface_geometry,
+            img_src = img_src, 
+            img_pro = img_src, 
             INVM = INVM,
             vp = vp, 
             M = M)
@@ -1416,14 +1530,25 @@ if __name__ == "__main__":
             COLOR_TRESH_MAX = COLOR_TRESH_MAX, COLOR_MODEL = COLOR_MODEL, 
             VERT_TRESH = 0, FILT_KERN= 5)
 
-        left_fit, right_fit, img_pro_mask = fit_polynomial(
-            nwindows = nwindows, margin = margin, minpix = minpix,
-            binary_warped = img_pro_mask)
+        left_fit, right_fit, surface_geometry, img_proj_mask = fit_polynomial(
+            binary_warped = img_proj_mask,
+            nwindows = nwindows, 
+            margin = margin, 
+            minpix = minpix)
 
         img_res = draw_results(
-            img_src = img_src, img_pro = img_pro, img_pro_mask = img_pro_mask, 
-            UNWARPED_SIZE = UNWARPED_SIZE, size_points = size_points, 
-            src_points = src_points, dst_points = dst_points, vp = vp, M = M)
+                img_pro_mask = img_proj_mask, 
+                img_src = img_src, 
+                img_pro = img_src, 
+                UNWARPED_SIZE = UNWARPED_SIZE, 
+                size_points = size_points, 
+                src_points = src_points, 
+                dst_points = dst_points,
+                src_name =  img_proj_ref,
+                surface_geometry = surface_geometry,
+                INVM = INVM,
+                vp = vp, 
+                M = M)
         cv2.imshow(results_window_name, img_res); cv2.waitKey(0)
 
         # Write result image
