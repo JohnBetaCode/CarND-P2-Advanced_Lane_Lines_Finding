@@ -49,28 +49,23 @@ class LaneLine:
         Returns:
         """
 
-        self.regression = {"m": None, "b": None} # Current values for linear regression
+        self.regression = [0, 0, 0] # Current values for linear regression
         self.lane_side = lane_side  # lane line label or lane side (right or left)
-        self.regression_m = [] # list of y-intercept of linear regression in time
-        self.regression_b = [] # list of slope of the line of linear regression in time
+        self.regression_hist = [] # list values of linear regression in time
         self.lost_frames = 0 # For how many frames the line is lost
         self.lost = True # State of lane line
-        self.lines = [] # Current independent lines for regression
 
-    def associate_regression(self, m, b, lines):
+    def associate_regression(self, new_regression):
 
         """  Associate the new values of linear regression to lane line and 
              calculates a new regression with these values
         Args:
-            lane_side: `string`  lane line label or lane side (right or left)
+            new_regression: `string`  lane line label or lane side (right or left)
         Returns:
         """
-
-        # Asign lines
-        self.lines = lines
-
+        
         # If there's no linear regression values then do nothing
-        if m is None or b is None:
+        if new_regression is None:
             self.lost = True        # Associate as lost lane line
             self.lost_frames += 1   # Increment the number of frames where lane line is lost
             return
@@ -79,24 +74,29 @@ class LaneLine:
         self.lost = False # reset the number of frames where lane line is lost
 
         # If there's more than 'N' associations delete the first in history
-        if len(self.regression_m) > 10:
-            self.regression_m.pop(0)
-            self.regression_b.pop(0)
+        if len(self.regression_hist) > 10: 
+            self.regression_hist.pop(0)
 
         # Add new regretion values 
-        self.regression_m.append(m)
-        self.regression_b.append(b)
+        self.regression_hist.append(list(new_regression))
+
+        mean_A = mean_B = mean_C = 0
+        for idx in range(0, len(self.regression_hist)):
+            mean_A += self.regression_hist[idx][0]
+            mean_B += self.regression_hist[idx][1]
+            mean_C += self.regression_hist[idx][2]
 
         # Calculate the mean value for each linear regression parameter
-        self.regression["m"] = np.mean(self.regression_m)
-        self.regression["b"] = np.mean(self.regression_b)
+        self.regression[0] = np.mean(mean_A/idx)
+        self.regression[1] = np.mean(mean_B/idx)
+        self.regression[2] = np.mean(mean_C/idx)
 
     def __str__(self):
         str2print = "Lane side: {}".format(self.lane_side) +\
                     "Lost: {} ({})".format(len(self.lost), self.lost_frames) +\
-                    "Lines: {}".format(len(self.lines)) +\
-                    "m: {}".format(round(self.regression["m"],2)) +\
-                    "b: {}".format(round(self.regression["b"],2))
+                    "A: {}".format(round(self.regression[0],2)) +\
+                    "B: {}".format(round(self.regression[1],2)) +\
+                    "C: {}".format(round(self.regression[2],2))
         return str2print
 
 # =============================================================================
@@ -104,7 +104,8 @@ class LaneLine:
 # =============================================================================
 def nothing(x): pass
 
-def print_list_text(img_src, str_list, origin = (0, 0), color = (0, 255, 255), thickness = 2, fontScale = 0.45,  y_space = 20):
+def print_list_text(img_src, str_list, origin = (0, 0), color = (0, 255, 255), 
+    thickness = 2, fontScale = 0.45,  y_space = 20):
 
     """  prints text list in cool way
     Args:
@@ -138,7 +139,8 @@ def print_list_text(img_src, str_list, origin = (0, 0), color = (0, 255, 255), t
 
     return img_src
 
-def color_range_tunner(img_src, tune = True, conf_file_path = "", space_model = cv2.COLOR_BGR2HSV):
+def color_range_tunner(img_src, tune = True, conf_file_path = "", 
+    space_model = cv2.COLOR_BGR2HSV):
 
     """ creates a window to tune with input image 'img_src' parameters of a
         color space model, then saves the configuration parameters in a npz 
@@ -350,7 +352,8 @@ def discrete_contour(contour, Dl):
     # Return new contour with intermediate points
     return new_contour
 
-def find_lanelines(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT_TRESH = 0.6, FILT_KERN = 5):
+def find_lanelines(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, 
+                   VERT_TRESH = 0.6, FILT_KERN = 5):
 
     """ Finds a simple linear regression canny edge detection for each lane line (Right and Left)
     Args:
@@ -463,7 +466,8 @@ def find_lanelines(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT_
     # Return results
     return Lm, Lb, Rm, Rb, Left_Lines, Right_Lines
 
-def draw_lanelines(img_src, Right_Lane_Line, Left_Lane_Line, VERT_TRESH = 0.6, draw_lines = True, draw_regression = True, draw_info = True):
+def draw_lanelines(img_src, Right_Lane_Line, Left_Lane_Line, VERT_TRESH = 0.6, 
+                   draw_lines = True, draw_regression = True, draw_info = True):
 
     """  Draws lane lines in image
     Args:
@@ -540,7 +544,8 @@ def draw_lanelines(img_src, Right_Lane_Line, Left_Lane_Line, VERT_TRESH = 0.6, d
     # Return result
     return img_src
 
-def calibrate_camera(folder_path = "", calibration_file = "", n_x = 6, n_y = 9, show_drawings = False):
+def calibrate_camera(folder_path = "", calibration_file = "", n_x = 6, n_y = 9, 
+    show_drawings = False):
     
     """ From chess board images find the coefficient and distortion of 
         the camera and save the matrix and distortion coefficients
@@ -721,7 +726,8 @@ def get_projection_point_src(coords_dst, INVM):
 
     return coords_src
 
-def find_projection(folder_path, projection_file, Lm, Lb, Rm, Rb, ORIGINAL_SIZE, UNWARPED_SIZE, HozTop = 50, HozBottom = 0, porc = 0.3):
+def find_projection(folder_path, projection_file, Lm, Lb, Rm, Rb, ORIGINAL_SIZE, 
+    UNWARPED_SIZE, HozTop = 50, HozBottom = 0, porc = 0.3):
 
     """ Find projection surface parameters from lane lines
     Args:
@@ -955,7 +961,8 @@ def draw_projection_parameters(
 
     return img_src
 
-def get_binary_mask(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT_TRESH, FILT_KERN):
+def get_binary_mask(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, 
+    VERT_TRESH, FILT_KERN):
 
     """ Get a binary mask from color space models thresholds
     Args:
@@ -994,7 +1001,8 @@ def get_binary_mask(img_src, COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL, VERT
 
     return mask
 
-def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50, draw_windows = True):
+def find_lane_pixels(binary_warped, nwindows = 9, margin = 100, minpix = 50, 
+    draw_windows = True):
 
     """ Get a binary mask from color space models thresholds
     Args:
@@ -1106,20 +1114,31 @@ def fit_polynomial(binary_warped, nwindows = 9, margin = 100, minpix = 50):
         surface_geometry: `list` list of coordinates with road surface projection
     """
 
+    right_fit = left_fit = None
+
     # Find our lane pixels first
     leftx, lefty, rightx, righty, out_img = find_lane_pixels(
         nwindows = nwindows, margin = margin, minpix = minpix,
         binary_warped = binary_warped, draw_windows = True)
 
     # Fit a second order polynomial to each using `np.polyfit`
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)
+    if len(lefty) and len(leftx):
+        left_fit = np.polyfit(lefty, leftx, 2)
+    if len(righty) and len(rightx):
+        right_fit = np.polyfit(righty, rightx, 2)
 
     # Generate x and y values for plotting
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+    right_fitx = left_fitx = []
     try:
-        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        if left_fit is not None:
+            left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        else:
+            print(bcolors.WARNING + '[WARNING]: The function failed to fit a left line!' + bcolors.ENDC)
+        if right_fit is not None:
+            right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        else:
+            print(bcolors.WARNING + '[WARNING]: The function failed to fit a right line!' + bcolors.ENDC)
     except TypeError:
         # Avoids an error if `left` and `right_fit` are still none or incorrect
         print(bcolors.FAIL + '[ERROR]: The function failed to fit a line!' + bcolors.ENDC)
@@ -1145,7 +1164,8 @@ def fit_polynomial(binary_warped, nwindows = 9, margin = 100, minpix = 50):
     # Return regressions of left and right lane lines
     return left_fit, right_fit, surface_geometry, out_img
 
-def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src_points,
+def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, 
+    src_points,
                  dst_points, vp, M, INVM, surface_geometry, src_name ="", right_curvature = 1,
                  left_curvature = 1, car_lane_pos = 1):
 
@@ -1180,15 +1200,16 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src
         "Radius of curvature = {} [m]".format(round(abs(left_curvature+right_curvature)*0.5, 2)),
         "Left of curvature = {} [m]".format(round(left_curvature, 2)), 
         "Right of curvature = {} [m]".format(round(right_curvature, 2)),  
-        "vehicle is {} [m] {} of center".format(round(abs(car_lane_pos), 2), side))
+        "vehicle is {} [m] {} of center".format(round(abs(car_lane_pos), 2), side) if car_lane_pos is not None else "Unknow")
     img_pro_text = ("sky_view", "")
 
     for idx, pt in enumerate(surface_geometry):
         surface_geometry[idx] = get_projection_point_src((pt[0], pt[1], 1), INVM)
 
-    cv2.drawContours(
-        image = img_res, contours = [np.array(surface_geometry)], 
-        contourIdx = 0, color = (0, 255, 0), thickness = -1)
+    if len(surface_geometry):
+        cv2.drawContours(
+            image = img_res, contours = [np.array(surface_geometry)], 
+            contourIdx = 0, color = (0, 255, 0), thickness = -1)
 
     # Draw left line from linear regression
     for pt in surface_geometry[0: int(len(surface_geometry)*0.5)]:
@@ -1222,7 +1243,8 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points, src
 
     return img_res
 
-def find_pix_meter_relations(UNWARPED_SIZE, left_fit, right_fit, x_distance_m = 3.7, y_distance_m = 30.):
+def find_pix_meter_relations(UNWARPED_SIZE, left_fit, right_fit, 
+    x_distance_m = 3.7, y_distance_m = 30.):
 
     """ Calculate vertical and horizontal pixel to meters relation
     Args:
@@ -1272,17 +1294,22 @@ def measure_curvature(left_fit, right_fit, ym_per_pix =1., y_eval = 0):
         left_curvature: `float` [m] curvature of right lane line
     """
 
-    Ar = right_fit[0]; Br = right_fit[1]; 
-    Al = left_fit[0]; Bl = left_fit[1]; 
-    
+    left_curvature = right_curvature = 0
+
     # Define y-value where we want radius of curvature
     # We'll choose the maximum y-value, corresponding to the bottom of the image
-    y_eval = 1*ym_per_pix
+    y_eval = y_eval*ym_per_pix
 
-    # Calculation of R_curve (radius of curvature)
-    right_curvature = ((1 + (2*Ar*y_eval + Br)**2)**1.5) / np.absolute(2*Ar)
-    left_curvature = ((1 + (2*Al*y_eval + Bl)**2)**1.5) / np.absolute(2*Al)
-
+    if left_fit is not None:
+        Al = left_fit[0]; Bl = left_fit[1]; 
+        # Calculation of R_curve (radius of curvature)
+        left_curvature = ((1 + (2*Al*y_eval + Bl)**2)**1.5) / np.absolute(2*Al)
+    
+    if right_fit is not None:
+        Ar = right_fit[0]; Br = right_fit[1]; 
+        # Calculation of R_curve (radius of curvature)
+        right_curvature = ((1 + (2*Ar*y_eval + Br)**2)**1.5) / np.absolute(2*Ar)
+    
     return right_curvature, left_curvature
 
 def get_car_road_position(left_fit, right_fit, xm_per_pix, UNWARPED_SIZE):
@@ -1296,6 +1323,8 @@ def get_car_road_position(left_fit, right_fit, xm_per_pix, UNWARPED_SIZE):
     Returns:
         car_lane_pos: `float` [m] position of the vehicle with respect to center of road
     """
+
+    if left_fit is None or right_fit is None: return None
 
     left_fitx  = left_fit[0]*UNWARPED_SIZE[1]**2 + left_fit[1]*UNWARPED_SIZE[1] + left_fit[2]
     right_fitx = right_fit[0]*UNWARPED_SIZE[1]**2 + right_fit[1]*UNWARPED_SIZE[1] + right_fit[2]
@@ -1318,7 +1347,7 @@ if __name__ == "__main__":
     out_folder_image = "./output_images" # Output folder for images
     out_folder_video = "./output_videos" # Output folder for videos
     Tune_ranges  = False # Enable/Disable parameters tuning
-    Save_results = False # Enable/Disable results saving
+    Save_results = True # Enable/Disable results saving
     results_window_name = "surface_projection_result"
 
     # -------------------------------------------------------------------------
@@ -1339,7 +1368,7 @@ if __name__ == "__main__":
     #     folder_path = cam_calibration_folder, 
     #     n_x = chessboard_hori_div, 
     #     n_y = chessboard_vert_div,
-    #     show_drawings = True)
+    #     show_drawings = False)
 
     # Load camera calibration from file
     mtx, dist = load_camera_calibration(
@@ -1347,7 +1376,7 @@ if __name__ == "__main__":
         folder_path = cam_calibration_folder)
 
     # Confirm and see results of camera calibration
-    img_scr = cv2.imread(filename = os.path.join(cam_calibration_folder, "calibration1.jpg"))
+    img_scr = cv2.imread(os.path.join(cam_calibration_folder, "calibration1.jpg"))
     img_scr_undistort = cv2.undistort(img_scr, mtx, dist)
     img_scr = print_list_text( img_src = img_scr, str_list = ("ORIGINAL IMAGE", ""), 
             origin = (10, 50), color = (0, 0, 255), thickness = 5, fontScale = 1.5)
@@ -1358,7 +1387,10 @@ if __name__ == "__main__":
     img_scr = cv2.resize(
         dsize = (int(img_scr.shape[1]*0.5), int(img_scr.shape[0]*0.5)),
         src = img_scr)
-    cv2.imwrite(filename = os.path.join(out_folder_image, "cam_calibration.jpg"), img = img_scr)
+    cv2.imwrite(
+        filename = os.path.join(out_folder_image, "cam_calibration.jpg"), 
+        img = img_scr)
+    # cv2.imshow("Camera_calibration_result", img_scr); cv2.waitKey(0)
 
     # -------------------------------------------------------------------------
     """
@@ -1470,6 +1502,7 @@ if __name__ == "__main__":
         center.
     """
 
+    # Calculate vertical and horizontal pixel to meters relation
     xm_per_pix, ym_per_pix = find_pix_meter_relations(
         UNWARPED_SIZE = UNWARPED_SIZE,
         right_fit = right_fit,
@@ -1477,12 +1510,14 @@ if __name__ == "__main__":
         x_distance_m = 3.7, 
         y_distance_m = 30.)
 
+    # Calculate left and right lane line curvature
     right_curvature, left_curvature = measure_curvature(
         right_fit = right_fit, 
         left_fit = left_fit, 
         ym_per_pix =1., 
         y_eval = UNWARPED_SIZE[1])
 
+    # Calculate position of the vehicle with respect to center of road
     car_lane_pos = get_car_road_position(
         left_fit = left_fit, 
         right_fit = right_fit, 
@@ -1495,7 +1530,7 @@ if __name__ == "__main__":
         such that the lane area is identified clearly.
     """
 
-    # Draw and how results 
+    # Draw results of surface projection, curvature and others
     img_res = draw_results(
             surface_geometry = surface_geometry,
             right_curvature = right_curvature,
@@ -1512,110 +1547,184 @@ if __name__ == "__main__":
             INVM = INVM,
             vp = vp, 
             M = M)
-    cv2.imshow(results_window_name, img_res); cv2.waitKey(0)
-    exit()
+    # cv2.imshow(results_window_name, img_res); cv2.waitKey(0)
 
     # -------------------------------------------------------------------------
     # IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - IMAGES - I
+    if False:
 
-    # Read every images in folder 
-    for idx in range(0, len(img_list)):
+        # Read every images in folder 
+        for idx in range(0, len(img_list)):
 
-        # Read image
-        img_src = cv2.imread(os.path.join(folder_dir_image, img_list[idx]))
-        img_pro = cv2.warpPerspective(src = img_src, dsize = UNWARPED_SIZE, M = M)
+            # Read image
+            img_src = cv2.imread(os.path.join(folder_dir_image, img_list[idx]))
 
-        img_pro_mask = get_binary_mask(
-            img_src = img_pro, COLOR_TRESH_MIN = COLOR_TRESH_MIN, 
-            COLOR_TRESH_MAX = COLOR_TRESH_MAX, COLOR_MODEL = COLOR_MODEL, 
-            VERT_TRESH = 0, FILT_KERN= 5)
+             # Get perspective transformation
+            img_pro = cv2.warpPerspective(src = img_src, dsize = UNWARPED_SIZE, M = M)
 
-        left_fit, right_fit, surface_geometry, img_proj_mask = fit_polynomial(
-            binary_warped = img_proj_mask,
-            nwindows = nwindows, 
-            margin = margin, 
-            minpix = minpix)
-
-        img_res = draw_results(
-                img_pro_mask = img_proj_mask, 
-                img_src = img_src, 
-                img_pro = img_src, 
-                UNWARPED_SIZE = UNWARPED_SIZE, 
-                size_points = size_points, 
-                src_points = src_points, 
-                dst_points = dst_points,
-                src_name =  img_proj_ref,
-                surface_geometry = surface_geometry,
-                INVM = INVM,
-                vp = vp, 
-                M = M)
-        cv2.imshow(results_window_name, img_res); cv2.waitKey(0)
-
-        # Write result image
-        if Save_results:
-            cv2.imwrite(os.path.join(out_folder_image, img_list[idx]), img_res)
-
-    # -------------------------------------------------------------------------
-    # VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - V
-
-    for idx in range(0, len(video_list)): 
-
-        # Create and initialize Lane lines variables
-        Right_Lane_Line = LaneLine(lane_side = "Right")
-        Left_Lane_Line = LaneLine(lane_side = "Left")
-
-        # Variables for video recording
-        if Save_results:
-            fps = 15. # Frames per second
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Codec H264, format MP4
-            name_1 = os.path.join(out_folder_video, video_list[idx]) # File name and format
-            if 'video_out' in locals(): del video_out
-                    
-        # Start video capture
-        cap = cv2.VideoCapture(os.path.join(folder_dir_video, video_list[idx]))
-        reproduce = True
-
-        while(cap.isOpened()):
-            
-            if reproduce:
-            
-                # Read frame in video capture
-                ret, frame = cap.read()
-                if not ret: break
-
-                if not 'video_out' in locals() and Save_results:
-                    video_out = cv2.VideoWriter(name_1, fourcc, fps, (frame.shape[1], frame.shape[0]))
-
-                img_pro_mask = get_binary_mask(
-                img_src = frame, COLOR_TRESH_MIN = COLOR_TRESH_MIN, 
+            # Get a binary mask from color space models thresholds
+            img_pro_mask = get_binary_mask(
+                img_src = img_pro, COLOR_TRESH_MIN = COLOR_TRESH_MIN, 
                 COLOR_TRESH_MAX = COLOR_TRESH_MAX, COLOR_MODEL = COLOR_MODEL, 
                 VERT_TRESH = 0, FILT_KERN= 5)
 
-                left_fit, right_fit, img_pro_mask = fit_polynomial(
-                    nwindows = nwindows, margin = margin, minpix = minpix,
-                    binary_warped = img_pro_mask)
+            # Get polynomial regression for left and right lane line
+            left_fit, right_fit, surface_geometry, img_proj_mask = fit_polynomial(
+                binary_warped = img_pro_mask,
+                nwindows = nwindows, 
+                margin = margin, 
+                minpix = minpix)
 
-                # Draw and Show result
-                img_res = draw_results(
-                    img_src = frame, img_pro = img_pro, img_pro_mask = img_pro_mask, 
-                    UNWARPED_SIZE = UNWARPED_SIZE, size_points = size_points, 
-                    src_points = src_points, dst_points = dst_points, vp = vp, M = M)
-                cv2.imshow(results_window_name, img_res); cv2.waitKey(10)
+            # # Calculate left and right lane line curvature
+            right_curvature, left_curvature = measure_curvature(
+                right_fit = right_fit, 
+                left_fit = left_fit, 
+                ym_per_pix =1., 
+                y_eval = UNWARPED_SIZE[1])
 
-                # Write video
-                if Save_results: video_out.write(img_res) 
+            # # Calculate position of the vehicle with respect to center of road
+            car_lane_pos = get_car_road_position(
+                left_fit = left_fit, 
+                right_fit = right_fit, 
+                xm_per_pix = xm_per_pix, 
+                UNWARPED_SIZE = UNWARPED_SIZE)
 
-            # Wait user input
-            user_in = cv2.waitKey(10) 
-            if user_in & 0xFF == ord('q') or user_in == ord('Q'): break
-            if user_in & 0xFF == ord('a') or user_in == ord('A'): 
-                reproduce = not reproduce
-            if user_in & 0xFF == ord('t') or user_in == ord('t'): 
-                color_range_tunner(img_src = frame, tune = True, conf_file_path = './white_conf_hsv.npz')
-                color_range_tunner(img_src = frame, tune = True, conf_file_path = './yellow_conf_hsv.npz')
+            # Draw results of surface projection, curvature and others
+            img_res = draw_results(
+                surface_geometry = surface_geometry,
+                right_curvature = right_curvature,
+                left_curvature = left_curvature,
+                car_lane_pos = car_lane_pos,
+                UNWARPED_SIZE = UNWARPED_SIZE, 
+                img_pro_mask = img_proj_mask,
+                src_name =  img_proj_ref,
+                size_points = size_points, 
+                src_points = src_points, 
+                dst_points = dst_points,
+                img_src = img_src, 
+                img_pro = img_src, 
+                INVM = INVM,
+                vp = vp, 
+                M = M)
 
-    # Destroy video variables
-    cap.release(); cv2.destroyAllWindows(); print()
+            # Show results
+            cv2.imshow(results_window_name, img_res); cv2.waitKey(0)
+
+            # Write result image
+            if Save_results:
+                cv2.imwrite(os.path.join(out_folder_image, img_list[idx]), img_res)
+
+    # -------------------------------------------------------------------------
+    # VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - VIDEOS - V
+    if True:
+    
+        # Process in video list
+        for idx in range(0, len(video_list)): 
+
+            # Create and initialize Lane lines variables
+            Right_Lane_Line = LaneLine(lane_side = "Right")
+            Left_Lane_Line = LaneLine(lane_side = "Left")
+
+            # Variables for video recording
+            if Save_results:
+                fps = 15. # Frames per second
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Codec H264, format MP4
+                name_1 = os.path.join(out_folder_video, video_list[idx]) # File name and format
+                if 'video_out' in locals(): del video_out
+                        
+            # Start video capture
+            cap = cv2.VideoCapture(os.path.join(folder_dir_video, video_list[idx]))
+            reproduce = True
+
+            # While video capture
+            while(cap.isOpened()):
+                
+                # If reproduction on or pause off
+                if reproduce:
+                
+                    # Read frame in video capture
+                    ret, img_src = cap.read()
+                    if not ret: break
+
+                    # Get perspective transformation
+                    img_pro = cv2.warpPerspective(src = img_src, dsize = UNWARPED_SIZE, M = M)
+
+                    # Get a binary mask from color space models thresholds
+                    img_pro_mask = get_binary_mask(
+                        img_src = img_pro, COLOR_TRESH_MIN = COLOR_TRESH_MIN, 
+                        COLOR_TRESH_MAX = COLOR_TRESH_MAX, COLOR_MODEL = COLOR_MODEL, 
+                        VERT_TRESH = 0, FILT_KERN= 5)
+
+                    # cv2.imshow("img_src", img_src); cv2.imshow("img_pro", img_pro)
+                    # cv2.imshow("img_pro_mask", img_pro_mask); cv2.waitKey(0)
+
+                    # Get polynomial regression for left and right lane line
+                    left_fit, right_fit, surface_geometry, img_proj_mask = fit_polynomial(
+                        binary_warped = img_pro_mask,
+                        nwindows = nwindows, 
+                        margin = margin, 
+                        minpix = minpix)
+
+                    # Asociate current regressions
+                    Left_Lane_Line.associate_regression(left_fit)
+                    Right_Lane_Line.associate_regression(right_fit)
+
+                    # # Calculate left and right lane line curvature
+                    right_curvature, left_curvature = measure_curvature(
+                        right_fit = right_fit, 
+                        left_fit = left_fit, 
+                        ym_per_pix =1., 
+                        y_eval = UNWARPED_SIZE[1])
+
+                    # # Calculate position of the vehicle with respect to center of road
+                    car_lane_pos = get_car_road_position(
+                        left_fit = left_fit, 
+                        right_fit = right_fit, 
+                        xm_per_pix = xm_per_pix, 
+                        UNWARPED_SIZE = UNWARPED_SIZE)
+
+                    # Draw results of surface projection, curvature and others
+                    img_res = draw_results(
+                        surface_geometry = surface_geometry,
+                        right_curvature = right_curvature,
+                        left_curvature = left_curvature,
+                        car_lane_pos = car_lane_pos,
+                        UNWARPED_SIZE = UNWARPED_SIZE, 
+                        img_pro_mask = img_proj_mask,
+                        src_name =  video_list[idx],
+                        size_points = size_points, 
+                        src_points = src_points, 
+                        dst_points = dst_points,
+                        img_src = img_src, 
+                        img_pro = img_pro, 
+                        INVM = INVM,
+                        vp = vp, 
+                        M = M)
+
+                    cv2.imshow(results_window_name, img_res); cv2.waitKey(10)
+
+                    # Write video
+                    if Save_results: 
+                        
+                        if not 'video_out' in locals():
+                            video_out = cv2.VideoWriter(
+                                frameSize = (img_res.shape[1], img_res.shape[0]),
+                                filename = name_1, 
+                                fourcc = fourcc, 
+                                fps = fps)
+                        video_out.write(img_res) 
+
+                # Wait user input
+                user_in = cv2.waitKey(10) 
+                if user_in & 0xFF == ord('q') or user_in == ord('Q'): break
+                if user_in & 0xFF == ord('a') or user_in == ord('A'): 
+                    reproduce = not reproduce
+                if user_in & 0xFF == ord('t') or user_in == ord('t'): 
+                    color_range_tunner(img_src = img_pro, tune = True, conf_file_path = './white_conf_hsv.npz')
+                    color_range_tunner(img_src = img_pro, tune = True, conf_file_path = './yellow_conf_hsv.npz')
+
+        # Destroy video variables
+        cap.release(); cv2.destroyAllWindows(); print()
 
 # # =============================================================================
 #                      (: (: SORRY FOR MY ENGLISH! :) :)
