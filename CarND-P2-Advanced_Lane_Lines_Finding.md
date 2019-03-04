@@ -37,7 +37,15 @@ To run the pipeline just run in a prompt the command:
 
 Tested on: python 2.7 (3.X should work), OpenCV 3.0.0 (Higher version should work), UBUNTU 16.04.
 
-Feel free to change any input argument of any function explained next.
+Feel free to change any input argument of any function explained next:
+
+* ARGUMENTS 1 
+* ARGUMENTS 1 
+* ARGUMENTS 1 
+* ARGUMENTS 1 
+* ARGUMENTS 1 
+* ARGUMENTS 1 
+* ARGUMENTS 1 
 
 ---
 
@@ -45,7 +53,9 @@ Feel free to change any input argument of any function explained next.
 
 ### **1. Camera Calibration**
 
-OpenCV functions and other methods were used to calculate the correct camera matrix and distortion coefficients using the calibration chessboard images provided in the repository (9x6 chessboard images). The distortion matrix was used to undistort one of the calibration images provided as a demonstration that the calibration is correct. 
+<!-- 1.  Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image. -->
+
+OpenCV functions and other CV methods were used to calculate the correct camera matrix and distortion coefficients using the calibration chessboard images provided in this repository (9x6 chessboard images). The distortion matrix was used to undistort one of the calibration images provided as a demonstration that the calibration is correct. 
 
 The work is done by the function ```calibrate_camera()``` in ```CarND-P2-Advanced_Lane_Lines_Finding.py```. The arguments are:
 
@@ -79,18 +89,20 @@ If calibration succeeded, camera distortion parameters are saved in a ```npz``` 
 
 ### **2. Thresholded Binary Image**
 
+<!-- 2.  Describe how (and identify where in your code) you used color transforms,  -->
+
 I decided to explore my own methods and write all functions from scratch, so no given function was used or modified in this step. I used the same code used at [CarND-P1-Finding_Lane_Lines
-](https://github.com/JohnBetaCode/CarND-P1-Finding_Lane_Lines) to get the binary mask. 
+](https://github.com/JohnBetaCode/CarND-P1-Finding_Lane_Lines) to get a binary mask. 
 
-**Step 0**: &nbsp;I decided to use a dual color space HSV to get a binary image (mask) with our objects of interest (White lane lines and Yellow lane lines). Setting a maximum and a minimum value for each parameter H (Hue), S (Saturation), and V (Value), then compile, see result, adjust and try again is bothersome, so I coded a simple tuner window for this. Using the function ```color_range_tunner()```  you can load stetted parameters and set new values for an image. So, I tuned the color ranges for white and yellow lane lines (white_conf_hsv.npz and yellow_conf_hsv.npz). If you don't tune any parameter, the function loads the saved parameters from a npz file. It’s possible to tune parameters of different color space model instead of HSV like HLS or others supported by OpenCV. I only played with the HSV space, but HLS could work as well.
+**Step 0**: &nbsp;I decided to use two HSV color spaces tunned to get a binary image (mask) with our objects of interest (White lane lines and Yellow lane lines). Setting a maximum and a minimum value for each parameter H (Hue), S (Saturation), and V (Value), then compile, see result, adjust and try again is bothersome, so I coded a simple tuner window for this. Using the function ```color_range_tunner()```  you can load stetted parameters and set new values for an image. So, I tuned the color ranges for white and yellow lane lines (white_conf_hsv.npz and yellow_conf_hsv.npz). If you don't tune any parameter, the function loads the stores parameters from a npz file. It’s possible to tune parameters of different color space models instead of HSV like HLS or others supported by OpenCV. I only played with the HSV space, but HLS could work as well.
 
-Let's work we this image:
+Let's work with this image:
 
 <img src="./writeup_files/img_src.jpg" alt="drawing" width="400"/>
 
 *Figure 4 - Original image*  
 
-Why this image? because the car is perfectly centered with image (trust me!), and this is perfect to find a good surface projection as we'll see later.
+Why this image? because the car is perfectly centered with the center of image and center of the road (trust me!), and this is perfect to find a good surface projection as we'll see later.
 
 The color space tunning window is:
 
@@ -109,13 +121,13 @@ Considere the next **input arguments**:
 * VERT_TRESH: &nbsp;`float` &nbsp;- Normalized value to ignore vertical image range  
 * FILT_KERN: &nbsp;`int` &nbsp;- (odd) size/kernel of filter (Bilateral)  
   
-**Setp 1**: &nbsp;The first thing is smooth the image with a bilateral filter with a kernel size given by “FILT_KERN”, but, why a bilateral filter? well, this kind of filters can reduce unwanted noise very well while keeping edges fairly sharp, but they are very slow compared to most filters. Is necessary the filter? Yes, because we want reduce small particles o noise for next steps.
+**Setp 1**: &nbsp;The first thing is smooth the image with a bilateral filter with a kernel size given by “FILT_KERN”, but, why a bilateral filter? well, this kind of filters can reduce unwanted noise very well while keeping edges fairly sharp, but they are very slow compared to most filters. Is necessary the filter? Yes, because we want reduce small particles or noise for next steps.
 
 <img src="./writeup_files/img_filt_1.png" alt="drawing" width="400"/>  
 
 *Figure 6 - Smoothed Image with bilateral filter*  
   
-**Setp 2**: &nbsp;From our tunned parameters we'll get a binary mask from every color space tunned (COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL), then apply a logical operator (OR) to combine every mask and compose just one image like in the picture bellow. In every mask, the image area above the threshold VERT_TRESH (image height normalized value) is ignored, in few words this is because we dont care the sky and others objects above this horizontal limit.
+**Setp 2**: &nbsp;From our tunned parameters we'll get a binary mask from every color space tunned (COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL), then apply a logical operator (OR) to combine every mask and compose just one image like in the picture bellow. In every mask, the image area above the threshold VERT_TRESH (image height normalized value) is ignored, in few words this is because we don't care the sky and others objects above this horizontal limit.
 
 <img src="./writeup_files/mask_1.png" alt="drawing" width="400"/>  
 
@@ -126,42 +138,25 @@ Considere the next **input arguments**:
 
 <!-- Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image. -->
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **Setp 3**: &nbsp;The image above looks great to apply a canny edge detector to get only contours from the binary mask. No matter what parameters are given since our image is a binary mask, so changes are gonna be to strong to be detected with any values (X and Y gradients): 
 
 <img src="./writeup_files/mask_canny.png" alt="drawing" width="400"/>  
 
-*Figure 5 - Contours by Canny edge detection algorithm*  
+*Figure 8 - Contours by Canny edge detection algorithm*  
   
-**Setp 4**: &nbsp;Applying the Probabilistic Hough Line function we get the result shown in Figure 6. Setting the correct parameters to get these lines is about experience o just play for a while to get a decent result. The problem now is we have undesirable red lines in some scenarios, so the the question now is how do we distinguish what lines we want?, and what lines belong to the right and left side of the road ? I will explain it to you next.   
+**Setp 4**: &nbsp;Applying the Probabilistic Hough Line function we get the result shown in Figure 9. Setting the correct parameters to get these lines is about experience o just play for a while to get a decent result. The problem now is that we have undesirable red lines in some scenarios. So, the the question now is how do we distinguish what lines we want?, and what lines belong to the right and left side of the road?.
 
 <img src="./writeup_files/HoughLinesP.png" alt="drawing" width="400"/>
 
-*Figure 6 - Probabilistic Hough Line algorithm* 
+*Figure 9 - Probabilistic Hough Line algorithm* 
   
-**Setp 5**: &nbsp;A
+**Setp 5**: &nbsp; To distinguish what lines we want and what lines belong to the right and left side I use simple heuristic. If the vehicle is properly centered in the road, the left and right lane lines always intersect the image in the bottom, and lines that we don't want intersect the image on the left and right side, the unwanted lines also have small angles close to 0. or 180. degrees, so, with some conditionals we can take only the lines that belong to the left and right lane lines. Finally to get just one line per side, we compute a simple linear regression with left and right lines coordinates. 
 
 <img src="./writeup_files/HoughLinesP_Heuricstic.png" alt="drawing" width="400"/>  
 
-*Figure 7 - Hough Lines filtered and assigned with heuristic*
+*Figure 10 - Hough Lines filtered and assigned with heuristic*
   
-**Setp 6**: &nbsp; The answer to the last question is heuristic. If the vehicle is properly centered in the road, the left and right lane lines always intersect the image in the bottom, and lines that we don't want intersect the image on the left and right side, the unwanted lines also have small angles close to 0. or 180. degrees, so, with some conditionals we can take only the lines that belong to the left and right lane lines. Finally to get just one line per side, we compute a simple linear regression with left and right lines coordinates. 
-  
-Finally the function **Returns**:
+The function ```find_lanelines()```  **Returns**:
 * Lm: `float`  linear regression slope of left lane line
 * Lb: `float`  linear regression y-intercept of left lane line
 * Rm: `float`  linear regression slope of right lane line
@@ -169,15 +164,18 @@ Finally the function **Returns**:
 * Left_Lines: `list` list of left lines with which left lane line was calculated
 * Right_Lines: `list` list of right lines with which right lane line was calculated
   
-If no left or right lane line is detected function returns the parameters Lm, Lb, Rm, and Rb as None type
-
-
-<img src="./writeup_files/susrface_projection.png" alt="drawing" width="400"/>  
-
+If no left or right lane line is detected the function returns the parameters Lm, Lb, Rm, and Rb as None type respectively.
 
 ### **3. Polynomial Fitting**
 
 <!-- Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial? -->
+
+In order to adjust a geometry over the road surface, the fucntion `find_projection()` returns the transformation matrix **(M)** to project the road's tridimentional view in a dimentional space or birds eye view. For this operation we need four points in the original image (p1, p2, p3, and p4) to be projected in the projection size (pp1, pp2, pp2, pp3), this means that we should project spacially p1 in pp1, p2 in pp3 an so on.
+
+
+<img src="./writeup_files/susrface_projection.png" alt="drawing" width="400"/>  
+
+*Figure 11 - Geometric or Polynomial Fitting over surface porjection*
 
 ### **4. Line Curvature**
 
