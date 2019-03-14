@@ -47,7 +47,9 @@ critica_icon = cv2.imread("./writeup_files/icon_3.png", cv2.IMREAD_UNCHANGED)
 # =============================================================================
 # Define a class to receive the characteristics of each line detection
 class Line():
-    def __init__(self):
+    def __init__(self, label):
+
+        self.label = label
 
         # was the line detected in the last iteration?
         self.detected = False  
@@ -70,14 +72,10 @@ class Line():
         #difference in fit coefficients between last and new fits
         self.diffs = np.array([0,0,0], dtype='float') 
 
-
-
-
-
-
         #distance in meters of vehicle center from the line
         self.line_base_pos = None 
 
+        # Confidence of current polinomial fit
         self.fit_confidence = 0
 
         # ---------------------------------------
@@ -87,18 +85,17 @@ class Line():
         #average x values of the fitted line over the last n iterations
         self.bestx = None     
 
-
-
-    def assing_fit(self, poly_fit, x_coords, y_coords, y_eval = 0, num_sampels = 10):
-
+    def assing_fit(self, poly_fit, x_coords, y_coords, y_eval = 0, num_samples = 15):
+      
         self.allx = x_coords # x values for detected line pixels
         self.ally = y_coords # y values for detected line pixels
 
+        # If there's more than 'num_samples' associations delete the first in history
+        if len(self.hist_fit): self.hist_fit.pop(0)
+        else: self.current_fit = None
+
         # Change state of lane line if there's poly fit
         self.detected = False if poly_fit is None else True
-
-        # If there's more than 'num_sampels' associations delete the first in history
-        if len(self.hist_fit) > num_sampels: self.hist_fit.pop(0)
 
         # difference in fit coefficients between last and new fits
         if len(self.hist_fit): self.diffs = self.hist_fit[-1] - poly_fit
@@ -106,7 +103,7 @@ class Line():
         if self.current_fit is not None:  
             self.fit_confidence = cross_entropy(self.current_fit, poly_fit)
 
-        if self.fit_confidence < 1:
+        if self.fit_confidence < 1.:
 
             # Add new polynomial fit values 
             self.hist_fit.append(poly_fit)
@@ -1060,10 +1057,9 @@ def save_camera_projection(folder_path, projection_file, size_points, src_points
         vp = vp,
         M = M)
 
-def draw_projection_parameters(
-    img_src, img_proj, UNWARPED_SIZE, M, src_points, dst_points, size_points, vp, 
-    img_src_text=(), img_pro_text=(), draw_inner_projection=True, 
-    draw_inner_geoemtry=True, draw_outer_geoemtry=True):
+def draw_projection_parameters(img_src, img_proj, UNWARPED_SIZE, M, src_points, 
+    dst_points, size_points, vp, img_src_text=(), img_pro_text=(), 
+    draw_inner_projection=True, draw_inner_geoemtry=True, draw_outer_geoemtry=True):
     
     """ Draw projection geometries in original and projection image
     Args:
@@ -1191,14 +1187,18 @@ def fit_polynomial(src_warped, binary_warped, nwindows=9, margin=100, minpix=50,
     leftx, lefty, rightx, righty, out_img = find_lane_pixels(
         nwindows = nwindows, margin = margin, minpix = minpix,
         binary_warped = binary_warped, draw_windows = True,
-        src_warped = src_warped, left_fit=None, right_fit=None,
+        src_warped = src_warped, left_fit=left_fit, right_fit=right_fit,
         pp3 = pp3, pp4 = pp4)
 
     # Fit a second order polynomial to each using `np.polyfit`
     if len(lefty) and len(leftx):
-        left_fit = np.polyfit(lefty, leftx, 2)
+        if len(lefty) == len(leftx):
+            if len(lefty) > 10:
+                left_fit = np.polyfit(lefty, leftx, 2)
     if len(righty) and len(rightx):
-        right_fit = np.polyfit(righty, rightx, 2)
+        if len(righty) == len(rightx):
+            if len(righty) > 10:
+                right_fit = np.polyfit(righty, rightx, 2)
 
     # Return regressions of left and right lane lines
     return left_fit, right_fit, leftx, lefty, rightx, righty, out_img
@@ -1329,26 +1329,36 @@ def find_lane_pixels(src_warped, binary_warped, nwindows=9, margin=100, minpix=5
         win_y_low  = src_warped.shape[0] - (window+1) * window_height
         win_y_high = src_warped.shape[0] - window*window_height
         
+        # Recenter window with polinomial fit
+        y = int(win_y_low + (win_y_high-win_y_low)*0.5)
+        if left_fit is not None: 
+            A, B, C = left_fit
+            leftx_current = int(A*(y**2) + B*y + C)
+        if right_fit is not None: 
+            A, B, C = right_fit
+            rightx_current = int(A*(y**2) + B*y + C)
+
         # Find the four below boundaries of the window ###
         win_xleft_low   = leftx_current  - margin
         win_xleft_high  = leftx_current  + margin
         win_xright_low  = rightx_current - margin
         win_xright_high = rightx_current + margin
+
+        # Calculate window width
         window_widht = win_xright_high - win_xright_low
 
         if win_xleft_low<0: win_xleft_low = 0
         if win_xleft_high<0: win_xleft_high = 0
-        if win_xright_low>src_warped.shape[1]: win_xleft_high = src_warped.shape[1]
+        if win_xright_low>src_warped.shape[1]: win_xright_low = src_warped.shape[1]
         if win_xright_high>src_warped.shape[1]: win_xright_high = src_warped.shape[1]
 
         # Draw the windows on the visualization image
         if draw_windows:
             cv2.rectangle(out_img,(win_xleft_low, win_y_low),
             (win_xleft_high,win_y_high),(255,0, 255), 2) 
-
             cv2.rectangle(out_img,(win_xright_low, win_y_low),
             (win_xright_high, win_y_high), (255, 0, 255), 2) 
-        
+
         # ---------------------------------------------------------------------
         # Get the histograms and their maximum arguments
         roi_img_r = src_warped_hsv[win_y_low:win_y_high, win_xright_low:win_xright_high]
@@ -1375,61 +1385,61 @@ def find_lane_pixels(src_warped, binary_warped, nwindows=9, margin=100, minpix=5
 
         # If first window ignore part of window where vehicles appears
         if not window:
-            roi_img_binary_l[int(roi_img_binary_l.shape[0]*vert_tresh_zero):, :] = 0
-            roi_img_binary_r[int(roi_img_binary_l.shape[0]*vert_tresh_zero):, :] = 0
+            if roi_img_binary_l is not None:
+                roi_img_binary_l[int(roi_img_binary_l.shape[0]*vert_tresh_zero):, :] = 0
+            if roi_img_binary_r is not None:
+                roi_img_binary_r[int(roi_img_binary_r.shape[0]*vert_tresh_zero):, :] = 0
 
         # Identify the x and y positions of all nonzero pixels in the image
-        mask_l = roi_img_binary_l.copy()
-        mask_r = roi_img_binary_r.copy()
-        nonzerol  = mask_l.nonzero()
-        nonzeror  = mask_r.nonzero()
         source_l = source_r = "H"
-
-        mask_l_src = binary_warped[win_y_low:win_y_high, win_xleft_low:win_xleft_high]
-        mask_r_src = binary_warped[win_y_low:win_y_high, win_xright_low:win_xright_high]
-        # if len(mask_l_src.nonzero()[0]) > 0.6: mask_l_src[:,:] = 0
-        # if len(mask_r_src.nonzero()[0]) > 0.6: mask_r_src[:,:] = 0
-
-        nonzero_porc_r = len(nonzeror[0])/(window_widht*window_height)
-        nonzero_porc_l = len(nonzerol[0])/(window_widht*window_height)
-
-        # Heuristic to build binary masks
-        if not len(nonzeror[0]): 
-            mask_r = binary_warped[
-                win_y_low:win_y_high, win_xright_low:win_xright_high]
-            nonzeror  = mask_r.nonzero()
-            source_r = "B"
-        elif nonzero_porc_r < 0.05:
-            mask_r = cv2.bitwise_or(mask_r_src, mask_r)
-            nonzeror  = mask_r.nonzero()
-            source_r = "H+B(or)"
-        elif nonzero_porc_r > 0.20:
-            mask_r = cv2.bitwise_and(mask_r_src, mask_r)
-            nonzeror  = mask_r.nonzero()
-            source_r = "H+B(and)"
-
-        if not len(nonzerol[0]): 
-            mask_l = binary_warped[
-                win_y_low:win_y_high, win_xleft_low:win_xleft_high]
+        
+        nonzeroxl = nonzeroyl = nonzeroxl = []
+        if roi_img_binary_l is not None:
+            mask_l = roi_img_binary_l.copy()
             nonzerol  = mask_l.nonzero()
-            source_l = "B"
-        elif nonzero_porc_l < 0.05:
-            mask_l = cv2.bitwise_or(
-                mask_l_src,
-                mask_l)
-            nonzerol  = mask_l.nonzero()
-            source_l = "H+B(or)"
-        elif nonzero_porc_l > 0.20:
-            mask_l = cv2.bitwise_and(
-                mask_l_src,
-                mask_l)
-            nonzerol  = mask_l.nonzero()
-            source_l = "H+B(and)"
+            mask_l_src = binary_warped[win_y_low:win_y_high, win_xleft_low:win_xleft_high]
+            nonzero_porc_l = len(nonzerol[0])/(window_widht*window_height)
+            if not len(nonzerol[0]): 
+                    mask_l = binary_warped[
+                        win_y_low:win_y_high, win_xleft_low:win_xleft_high]
+                    nonzerol  = mask_l.nonzero()
+                    source_l = "B"
+            elif nonzero_porc_l < 0.05:
+                mask_l = cv2.bitwise_or(
+                    mask_l_src,
+                    mask_l)
+                nonzerol  = mask_l.nonzero()
+                source_l = "H+B(or)"
+            elif nonzero_porc_l > 0.20:
+                mask_l = cv2.bitwise_and(
+                    mask_l_src,
+                    mask_l)
+                nonzerol  = mask_l.nonzero()
+                source_l = "H+B(and)"
+            nonzeroyl = np.array(nonzerol[0]) + win_y_low 
+            nonzeroxl = np.array(nonzerol[1]) + win_xleft_low 
 
-        nonzeroyl = np.array(nonzerol[0]) + win_y_low 
-        nonzeroxl = np.array(nonzerol[1]) + win_xleft_low 
-        nonzeroyr = np.array(nonzeror[0]) + win_y_low 
-        nonzeroxr = np.array(nonzeror[1]) +  win_xright_low
+        nonzeror = nonzeroyr = nonzeroxr = []
+        if roi_img_binary_r is not None:
+            mask_r = roi_img_binary_r.copy()
+            nonzeror  = mask_r.nonzero()
+            mask_r_src = binary_warped[win_y_low:win_y_high, win_xright_low:win_xright_high]
+            nonzero_porc_r = len(nonzeror[0])/(window_widht*window_height)
+            if not len(nonzeror[0]): 
+                mask_r = binary_warped[
+                    win_y_low:win_y_high, win_xright_low:win_xright_high]
+                nonzeror  = mask_r.nonzero()
+                source_r = "B"
+            elif nonzero_porc_r < 0.05:
+                mask_r = cv2.bitwise_or(mask_r_src, mask_r)
+                nonzeror  = mask_r.nonzero()
+                source_r = "H+B(or)"
+            elif nonzero_porc_r > 0.20:
+                mask_r = cv2.bitwise_and(mask_r_src, mask_r)
+                nonzeror  = mask_r.nonzero()
+                source_r = "H+B(and)"
+            nonzeroyr = np.array(nonzeror[0]) + win_y_low 
+            nonzeroxr = np.array(nonzeror[1]) +  win_xright_low
 
         # Draw process setp by step
         if draw_histograms:
@@ -1454,54 +1464,66 @@ def find_lane_pixels(src_warped, binary_warped, nwindows=9, margin=100, minpix=5
                         int(win_y_low + (win_y_high - win_y_low)*0.5)-20), 
                 color = (0, 255, 0), thickness = 1, fontScale = 0.45)
 
-            roi_img_binary_l = cv2.cvtColor(roi_img_binary_l, cv2.COLOR_GRAY2BGR)
-            roi_img_binary_l[:,:,0] = 0; roi_img_binary_l[:,:,1] = 0
-            show_img_1 = np.concatenate(
-                (src_warped[win_y_low:win_y_high, win_xleft_low:win_xleft_high], 
-                cv2.cvtColor(mask_l_src, cv2.COLOR_GRAY2BGR),
-                roi_img_binary_l), 
-                axis = 1)
-            roi_img_binary_r = cv2.cvtColor(roi_img_binary_r, cv2.COLOR_GRAY2BGR)
-            roi_img_binary_r[:,:,0] = 0; roi_img_binary_r[:,:,2] = 0
-            show_img_2 = np.concatenate(
-                (src_warped[win_y_low:win_y_high, win_xright_low:win_xright_high], 
-                cv2.cvtColor(mask_r_src, cv2.COLOR_GRAY2BGR),
-                roi_img_binary_r), 
-                axis = 1)
+            if roi_img_binary_l is not None:
+                roi_img_binary_l = cv2.cvtColor(roi_img_binary_l, cv2.COLOR_GRAY2BGR)
+                roi_img_binary_l[:,:,0] = 0; roi_img_binary_l[:,:,1] = 0
+                show_img_1 = np.concatenate(
+                    (src_warped[win_y_low:win_y_high, win_xleft_low:win_xleft_high], 
+                    cv2.cvtColor(mask_l_src, cv2.COLOR_GRAY2BGR),
+                    roi_img_binary_l), 
+                    axis = 1)
+                cv2.imshow("thresh_space_1", show_img_1)
+
+            if roi_img_binary_r is not None:
+                roi_img_binary_r = cv2.cvtColor(roi_img_binary_r, cv2.COLOR_GRAY2BGR)
+                roi_img_binary_r[:,:,0] = 0; roi_img_binary_r[:,:,2] = 0
+                show_img_2 = np.concatenate(
+                    (src_warped[win_y_low:win_y_high, win_xright_low:win_xright_high], 
+                    cv2.cvtColor(mask_r_src, cv2.COLOR_GRAY2BGR),
+                    roi_img_binary_r), 
+                    axis = 1)
+                cv2.imshow("thresh_space_2", show_img_2)
         
             plt.plot(histr,color = 'r')
             plt.plot([idx_max_r, idx_max_r], [0, histr[idx_max_r]], marker = 'o', color = 'r')
             plt.plot([idx_max_r+thresh_offset_high_r, idx_max_r+thresh_offset_high_r], 
                     [0, histr[idx_max_r]], marker = 'o', color = 'r')
-
             plt.plot(histl,color = 'g')
             plt.plot([idx_max_l, idx_max_l], [0, histl[idx_max_l]], marker = 'o', color = 'g')
             plt.plot([idx_max_l+thresh_offset_high_l, idx_max_l+thresh_offset_high_l], 
                     [0, histl[idx_max_l]], marker = 'o', color = 'g')
-
             plt.xlim([0,256])
             plt.draw()
             plt.pause(0.01)
             plt.clf()
 
-            show_img_1 = np.concatenate((show_img_1, show_img_2), axis = 0)
-            cv2.imshow("thresh_space", show_img_1); 
-            cv2.imshow("out_img_proc", out_img); 
-            cv2.waitKey(0)
+            cv2.imshow("out_img_proc", out_img)
+            user_in = cv2.waitKey(0)
+
+            # if user_in & 0xFF == ord('t') or user_in == ord('T'):
+            #     load_color_spaces_ranges(
+            #                 files_list = color_files_list, 
+            #                 img = img_pro,
+            #                 tune = True)
 
         # ---------------------------------------------------------------------
         # If you found > minpix pixels, recenter next window on their mean position
-        if len(nonzeroyl) >= minpix:
-            leftx_current = np.int(np.mean(nonzeroxl))
+        if len(nonzeroyl) >= minpix and left_fit is not None :
+            if len(nonzeroxl):
+                leftx_current = np.int(np.mean(nonzeroxl))
 
-        if len(nonzeroyr) >= minpix:        
-            rightx_current = np.int(np.mean(nonzeroxr))
+        if len(nonzeroyr) >= minpix and right_fit is not None:     
+            if len(nonzeroxr):
+                rightx_current = np.int(np.mean(nonzeroxr))
 
         # Extract left and right line pixel positions
-        leftx  = np.concatenate((leftx, nonzeroxl), axis = None)
-        lefty  = np.concatenate((lefty, nonzeroyl), axis = None)
-        rightx = np.concatenate((rightx, nonzeroxr), axis = None)
-        righty = np.concatenate((righty, nonzeroyr), axis = None)
+        if len(leftx) == len(lefty):
+            leftx  = np.concatenate((leftx, nonzeroxl), axis = None)
+            lefty  = np.concatenate((lefty, nonzeroyl), axis = None)
+
+        if len(rightx) == len(righty):
+            rightx = np.concatenate((rightx, nonzeroxr), axis = None)
+            righty = np.concatenate((righty, nonzeroyr), axis = None)
 
     return leftx.astype(int), lefty.astype(int), rightx.astype(int), righty.astype(int), out_img
 
@@ -1726,11 +1748,11 @@ if __name__ == "__main__":
     video_list = os.listdir(folder_dir_video)   # Videos list
     
     results_window_name = "surface_projection_result"
-    show_process_calibration = True # Show process for camera calibration
-    show_process_SurfaceProj = True # Sow process for surface projection
-    show_process_images = True  # Show process for images
+    show_process_calibration = False # Show process for camera calibration
+    show_process_SurfaceProj = False # Sow process for surface projection
+    show_process_images = False  # Show process for images
     show_process_videos = True # Show process for videos
-    Save_results = True # Enable/Disable results saving
+    Save_results = False # Enable/Disable results saving
 
     # Variables for camera calibration
     cam_calibration_folder = "./camera_cal" # Folder path with chessboard images
@@ -1741,7 +1763,7 @@ if __name__ == "__main__":
     # Color Thresholding Parameters
     Tune_ranges = False # Enable/Disable parameters tuning
     color_files_list = [
-            # './lane_lines_conf_hls.npz',
+            './lane_lines_conf_hls.npz',
             './white_conf_hsv.npz',
             './yellow_conf_hsv.npz']
 
@@ -2064,7 +2086,8 @@ if __name__ == "__main__":
                 if user_in & 0xFF == ord('t') or user_in == ord('t'): 
                     COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL = load_color_spaces_ranges(
                         files_list = color_files_list, 
-                        img = img_pro)
+                        img = img_pro,
+                        tune = True)
 
             # Write result image
             if Save_results:
@@ -2090,8 +2113,8 @@ if __name__ == "__main__":
         for idx in range(0, len(video_list)): 
 
             # Create and initialize Lane lines variables
-            Right_Lane_Line = Line()
-            Left_Lane_Line = Line()
+            Right_Lane_Line = Line("Right_Lane_Line")
+            Left_Lane_Line = Line("Left_Lane_Line")
 
             # Variables for video recording
             if Save_results:
