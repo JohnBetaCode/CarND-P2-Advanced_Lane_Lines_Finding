@@ -47,6 +47,7 @@ critica_icon = cv2.imread("./writeup_files/icon_3.png", cv2.IMREAD_UNCHANGED)
 # =============================================================================
 # Define a class to receive the characteristics of each line detection
 class Line():
+
     def __init__(self, label):
 
         self.label = label
@@ -85,34 +86,48 @@ class Line():
         #average x values of the fitted line over the last n iterations
         self.bestx = None     
 
-    def assing_fit(self, poly_fit, x_coords, y_coords, y_eval = 0, num_samples = 15):
+    def assing_fit(self, poly_fit, x_coords, y_coords, y_eval = 0, num_samples = 10):
       
+        # detected line pixels assigment
         self.allx = x_coords # x values for detected line pixels
         self.ally = y_coords # y values for detected line pixels
-
-        # If there's more than 'num_samples' associations delete the first in history
-        if len(self.hist_fit): self.hist_fit.pop(0)
-        else: self.current_fit = None
 
         # Change state of lane line if there's poly fit
         self.detected = False if poly_fit is None else True
 
+        # If there's more than 'num_samples' associations delete the first in history
+        if ((len(self.hist_fit) and poly_fit is None) or 
+            len(self.hist_fit) >= num_samples): 
+            self.hist_fit.pop(0)
+
         # difference in fit coefficients between last and new fits
-        if len(self.hist_fit): self.diffs = self.hist_fit[-1] - poly_fit
+        if len(self.hist_fit) and poly_fit is not None: 
+            self.diffs = self.hist_fit[-1] - poly_fit
 
-        if self.current_fit is not None:  
-            self.fit_confidence = cross_entropy(self.current_fit, poly_fit)
+        # Add new polynomial fit values 
+        self.hist_fit.append(poly_fit)
 
-        if self.fit_confidence < 1.:
+        # Calculate new poly fit
+        A = np.mean([arg_poly_fit[0] for arg_poly_fit in self.hist_fit])
+        B = np.mean([arg_poly_fit[1] for arg_poly_fit in self.hist_fit])
+        C = np.mean([arg_poly_fit[2] for arg_poly_fit in self.hist_fit])
+        self.current_fit = [A, B, C]
 
-            # Add new polynomial fit values 
-            self.hist_fit.append(poly_fit)
+        # if self.current_fit is not None:  
+        #     self.fit_confidence = cross_entropy(self.current_fit, poly_fit)
 
-            # Calculate new poly fit
-            A = np.mean([arg_poly_fit[0] for arg_poly_fit in self.hist_fit])
-            B = np.mean([arg_poly_fit[1] for arg_poly_fit in self.hist_fit])
-            C = np.mean([arg_poly_fit[2] for arg_poly_fit in self.hist_fit])
-            self.current_fit = [A, B, C]
+        # if self.fit_confidence < 1.:
+
+        print(self, len(poly_fit), len(x_coords), len(y_coords))
+ 
+
+    def __str__(self):
+
+        str2print = "|label: {}\t|".format(self.label) \
+            + "confi: {}\t|".format(round(self.fit_confidence), 3) \
+            + "hist_fit: {}\t|".format(len(self.hist_fit)) 
+
+        return str2print
 
 def cross_entropy(predictions, targets, epsilon=1e-12):
     """
@@ -1739,6 +1754,8 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points,
 if __name__ == "__main__":
 
     # -------------------------------------------------------------------------
+    # HYPER PARAMETERS - HYPER PARAMETERS - HYPER PARAMETERS - HYPER PARAMETERS 
+    
     # process parameters    
     folder_dir_image = "./test_images"  # folder with images 
     folder_dir_video = "./test_videos"  # folder with videos 
@@ -1748,9 +1765,9 @@ if __name__ == "__main__":
     video_list = os.listdir(folder_dir_video)   # Videos list
     
     results_window_name = "surface_projection_result"
-    show_process_calibration = False # Show process for camera calibration
-    show_process_SurfaceProj = False # Sow process for surface projection
-    show_process_images = False  # Show process for images
+    show_process_calibration = True # Show process for camera calibration
+    show_process_SurfaceProj = True # Sow process for surface projection
+    show_process_images = True  # Show process for images
     show_process_videos = True # Show process for videos
     Save_results = False # Enable/Disable results saving
 
@@ -1783,7 +1800,7 @@ if __name__ == "__main__":
     # Poly Fit parameters
     nwindows = 9 # Number of sliding windows
     margin = 100 # width of the windows +/- margin
-    minpix = 20  # minimum number of pixels found to recenter window
+    minpix = 10  # minimum number of pixels found to recenter window
 
     # -------------------------------------------------------------------------
     # CAMERA CALIBRATION - CAMERA CALIBRATION - CAMERA CALIBRATION - CAMERA CAL
@@ -2141,7 +2158,7 @@ if __name__ == "__main__":
 
             # While video capture
             while(cap.isOpened()):
-                
+
                 # If reproduction on or pause off
                 if reproduce:
                 

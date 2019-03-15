@@ -3,7 +3,7 @@
 
 ### **Description**
 
-When we drive, we use our eyes to decide where to go. The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle (depending on lines curvature). Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm, then extract some of their features. This project detect lane lines and curvature, finding a surface projection and a relation between images world and real world. I used the tools that I learned about in the lesson (Computer Vision Fundamentals, Camera Calibration, Gradients, Color Spaces, and advanced computer vision techniques from Udacity's Self driving car NanoDegree).
+When we drive, we use our eyes to decide where to go. The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle (depending on lines curvature). Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm, then extract some of their features. This project detect lane lines and curvature, first finding the surface projection of road and a relation between images world and real world. I used the tools that I learned about in the lesson (Computer Vision Fundamentals, Camera Calibration, Gradients, Color Spaces, and advanced computer vision techniques from Udacity's NanoDegree of Self driving cars).
 
 <img src="./examples/example_output.jpg" alt="drawing" width="500"/> 
 
@@ -25,7 +25,7 @@ The goals / steps of this project are the following:
 
 ### **Used Methods**
 
-The tools that I used for pipeline are color spaces (HSV and HLS), regions of interest, Gaussian smoothing (filters), Canny Edge Detection, Hough LineTransform detection, Histograms peaks, sliding window, transformation matrix for surface projection and others. To achieve the goal was pieced together in a pipeline to detect the lane lines of each side of the road for images and videos. The curvatures of lines were calculated from linear regression of second order to later estimate the car's steering and position respect to road center.
+The tools that I used for pipeline are color spaces (HSV and HLS), regions of interest, Gaussian smoothing (filters), Canny Edge Detection, Hough LineTransform detection, Histograms peaks, sliding window, transformation matrix for surface projection and others. To achieve the goal was pieced together in to a pipeline to detect the lane lines of each side of the road for images and videos. The curvatures of lines were calculated from a second order linear regression to later estimate the car's steering and position respect to road center.
 
 ---
 
@@ -37,15 +37,54 @@ To run the pipeline just run in a prompt the command:
 
 Tested on: python 2.7 (3.X should work), OpenCV 3.0.0 (Higher version should work), UBUNTU 16.04.
 
-Feel free to change any input argument of any function explained next:
+Feel free to change any of the following hyper parameters:
 
-* ARGUMENTS 1 
-* ARGUMENTS 1 
-* ARGUMENTS 1 
-* ARGUMENTS 1 
-* ARGUMENTS 1 
-* ARGUMENTS 1 
-* ARGUMENTS 1 
+    # process parameters    
+    folder_dir_image = "./test_images"   # folder with images 
+    folder_dir_video = "./test_videos"   # folder with videos 
+    out_folder_image = "./output_images" # Output folder for images
+    out_folder_video = "./output_videos" # Output folder for videos
+    img_list = os.listdir(folder_dir_image)   # Images list
+    video_list = os.listdir(folder_dir_video) # Videos list
+    
+    results_window_name = "surface_projection_result"
+    show_process_calibration = True # Show process for camera calibration
+    show_process_SurfaceProj = True # Sow process for surface projection
+    show_process_images = True  # Show process for images
+    show_process_videos = True # Show process for videos
+    Save_results = False # Enable/Disable results saving
+
+    # Variables for camera calibration
+    cam_calibration_folder = "./camera_cal" # Folder path with chessboard images
+    cam_calibration_file = "cam_calibration.npz" # File name to load/save calibration
+    chessboard_vert_div = 6 # Number of vertical divisions in chessboard
+    chessboard_hori_div = 9 # Number of horizontal divisions in chessboard
+
+    # Color Thresholding Parameters
+    Tune_ranges = False # Enable/Disable parameters tuning
+    color_files_list = [
+            './lane_lines_conf_hls.npz',
+            './white_conf_hsv.npz',
+            './yellow_conf_hsv.npz']
+
+    # Projection Parameters
+    projection_file = "projection_params.npz"
+    UNWARPED_SIZE = (1280, 720) # Unwarped size (width, height)
+    VERT_TRESH = 0.6 # Normalized value to ignore vertical image values
+    HozBottom = 0 # Superior threshold value
+    HozTop = 30 # Superior threshold value
+    porc = 0.3 # percentage to adjust surface's geometry in UNWARPED_SIZE
+
+    # Parameters for pixel relation
+    pix_dashed_line = 50. # [pix] length of lane line
+    x_distance_m = 3.7 # [m] road width or distance between lane lines
+    y_distance_m = 3. # [m] length of lane line
+    
+    # Poly Fit parameters
+    nwindows = 9 # Number of sliding windows
+    margin = 100 # width of the windows +/- margin
+    minpix = 10  # minimum number of pixels found to recenter window
+
 
 ---
 
@@ -57,7 +96,7 @@ Feel free to change any input argument of any function explained next:
 
 OpenCV functions and other CV methods were used to calculate the correct camera matrix and distortion coefficients using the calibration chessboard images provided in this repository (9x6 chessboard images). The distortion matrix was used to undistort one of the calibration images provided as a demonstration that the calibration is correct. 
 
-The work is done by the function ```calibrate_camera()``` in ```CarND-P2-Advanced_Lane_Lines_Finding.py```. The arguments are:
+The function ```calibrate_camera()``` in ```CarND-P2-Advanced_Lane_Lines_Finding.py``` performs the camera cailibration. The input arguments are:
 
 Input Arguments:
 * folder_path: `string` - Folder path with chessboard images
@@ -70,15 +109,15 @@ Returns:
 * mtx: `numpy.narray` - camera distortion matrix
 * dist: `numpy.narray` - camera distortion vector
 
-Lets talk about this function. The variable ```object_points``` is initialized, which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image in folder ```folder_path```. Thus, ```objp``` is just a replicated array of coordinates, and ```object_points``` will be appended with a copy of it every time function successfully detects all chessboard corners in a test image. ```image_points``` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection. The function ```cv2.cornerSubPix()``` is used to refine the corner locations, this adjustment leads to a higher precision.
+In ```calibrate_camera()``` fucntion the variable ```object_points``` is initialized with the (x, y, z) coordinates expected of the chessboard corners in the world. Here I am assuming that the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image in folder ```folder_path```. Thus, ```objp``` is just a replicated array of coordinates, and ```object_points``` will be appended with a copy of it every time function successfully detects all chessboard corners in a test image. ```image_points``` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection. The function ```cv2.cornerSubPix()``` is used to refine the corner locations, this adjustment leads to a higher precision.
 
-Evey image to be processed is convert to gray scale, then using the function ```cv2.findChessboardCorners()``` the chessboard corners will be detected, and then the process is already explained. 
+Evey image to be processed is converted to gray scale, then using the function ```cv2.findChessboardCorners()``` the chessboard corners will be detected, and then the process is the already explained. 
 
 <img src="./writeup_files/chessboard_result.png" alt="drawing" width="350"/> 
 
-*Figure 2 - Chessboard detections*
+*Figure 2 - Chessboard corners detection*
 
-With all points appended in ```objobject_points``` and ```image_points``` we can compute the camera calibration and distortion coefficients using the function ```cv2.calibrateCamera()```. With the camera matrix and distortion coefficients we can test an image using the function ```cv2.undistort()``` function and obtain the next result:
+With all points appended in ```objobject_points``` and ```image_points``` I can compute the camera calibration and distortion coefficients using the function ```cv2.calibrateCamera()```. With the camera matrix, the distortion coefficients, a test image, and the function ```cv2.undistort()``` I got the next result:
 
 <img src="./output_images/cam_calibration.jpg" alt="drawing" width="700"/> 
 
@@ -220,7 +259,7 @@ The pattern size and quality is of extreme importance. Let’s consider the case
 
 ---
 
-> **Date:** &nbsp; 03/02/2019  
+> **Date:** &nbsp; 03/17/2019  
 > **Programmer:** &nbsp;John A. Betancourt G.  
 > **Phone:** &nbsp;+57 (311) 813 7206 / +57 (350) 283 51 22  
 > **Mail:** &nbsp;john.betancourt93@gmail.com / john@kiwicampus.com  
