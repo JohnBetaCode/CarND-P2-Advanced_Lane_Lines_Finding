@@ -1765,8 +1765,8 @@ if __name__ == "__main__":
     video_list = os.listdir(folder_dir_video)   # Videos list
     
     results_window_name = "surface_projection_result"
-    show_process_calibration = True # Show process for camera calibration
-    show_process_SurfaceProj = True # Sow process for surface projection
+    show_process_calibration = False # Show process for camera calibration
+    show_process_SurfaceProj = False # Sow process for surface projection
     show_process_images = True  # Show process for images
     show_process_videos = True # Show process for videos
     Save_results = False # Enable/Disable results saving
@@ -1780,7 +1780,7 @@ if __name__ == "__main__":
     # Color Thresholding Parameters
     Tune_ranges = False # Enable/Disable parameters tuning
     color_files_list = [
-            './lane_lines_conf_hls.npz',
+            # './lane_lines_conf_hls.npz',
             './white_conf_hsv.npz',
             './yellow_conf_hsv.npz']
 

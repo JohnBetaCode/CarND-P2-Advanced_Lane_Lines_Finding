@@ -133,7 +133,7 @@ If calibration succeeded, camera distortion parameters are saved in a ```npz``` 
 I decided to explore my own methods and write all functions from scratch, so no given function was used or modified in this step. I used the same code used at [CarND-P1-Finding_Lane_Lines
 ](https://github.com/JohnBetaCode/CarND-P1-Finding_Lane_Lines) to get a binary mask. 
 
-**Step 0**: &nbsp;I decided to use two HSV color spaces tunned to get a binary image (mask) with our objects of interest (White lane lines and Yellow lane lines). Setting a maximum and a minimum value for each parameter H (Hue), S (Saturation), and V (Value), then compile, see result, adjust and try again is bothersome, so I coded a simple tuner window for this. Using the function ```color_range_tunner()```  you can load stetted parameters and set new values for an image. So, I tuned the color ranges for white and yellow lane lines (white_conf_hsv.npz and yellow_conf_hsv.npz). If you don't tune any parameter, the function loads the stores parameters from a npz file. It’s possible to tune parameters of different color space models instead of HSV like HLS or others supported by OpenCV. I only played with the HSV space, but HLS could work as well.
+**Step 0**: &nbsp;I decided to use two HSV color spaces tunned to get a binary image (mask) with our objects of interest (White lane lines and Yellow lane lines). Setting a maximum and a minimum value for each parameter H (Hue), S (Saturation), and V (Value), then compile, see result, adjust and try again is bothersome, so I coded a simple tuner window for this. Using the function ```color_range_tunner()```  you can load stetted parameters and set new values for an image. So, I tuned the color ranges for white and yellow lane lines (```white_conf_hsv.npz``` and ```yellow_conf_hsv.npz```). If you don't tune any parameter, the function loads the stored parameters from a npz file. It’s possible to tune parameters for a different color space model instead of HSV like HLS or others supported by OpenCV. I only played with the HSV space, but HLS could work as well.
 
 Let's work with this image:
 
@@ -172,12 +172,14 @@ Considere the next **input arguments**:
 
 *Figure 7 - Binary image from color thresholding*  
   
+with the fucntion `load_color_spaces_ranges()` you can provide a list of npz files names of you tunned corlor spaces and get the necesary arguments with all color spaces.
+
 
 ### **2. Perspective transform Image**
 
 <!-- Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image. -->
 
-**Setp 3**: &nbsp;The image above looks great to apply a canny edge detector to get only contours from the binary mask. No matter what parameters are given since our image is a binary mask, so changes are gonna be to strong to be detected with any values (X and Y gradients): 
+**Setp 3**: &nbsp;The image above looks great to apply a canny edge detector to get only contours from the binary mask. No matters what parameters are given since our image is a binary mask, so changes are gonna be too strong to be detected with any values (X and Y gradients): 
 
 <img src="./writeup_files/mask_canny.png" alt="drawing" width="400"/>  
 
@@ -208,17 +210,33 @@ If no left or right lane line is detected the function returns the parameters Lm
 ### **3. Polynomial Fitting**
 
 <!-- Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial? -->
+Next is explained how the polynomial fittings were calculated for images, for videos is quite similar, this will be explained later.
 
-In order to adjust a geometry over the road surface, the fucntion `find_projection()` returns the transformation matrix **(M)** to project the road's tridimentional view in a dimentional space or birds eye view. For this operation we need four points in the original image (p1, p2, p3, and p4) to be projected in the projection size (pp1, pp2, pp2, pp3), this means that we should project spacially p1 in pp1, p2 in pp3 an so on.
-
+In order to adjust a geometry over the road surface, the fucntion `find_projection()` returns the transformation matrix **(M)** to project the road's tridimentional view in a dimentional space or bird eye view. For this operation we need four points in the original image (p1, p2, p3, and p4) to be projected in the projection size (pp1, pp2, pp2, pp3), this means that we should project spacially p1 in pp1, p2 in pp2 an so on. p1, p2, p3, and p4 are calculated from the left, right, superior and inferior lines intersections.
 
 <img src="./writeup_files/susrface_projection.png" alt="drawing" width="400"/>  
 
 *Figure 11 - Geometric or Polynomial Fitting over surface porjection*
 
+Using the function `cv2.warpPerspective()` we can project the area formed by p1, p2, p3 and p4 in the original image in
+a new one wich is called skyview as shown in figure 12. 
+
+<img src="./writeup_files/no-image-icon-11.PNG" alt="drawing" width="400"/>  
+
+*Figure 12 - Surface porjection image*
+
+Using the function `get_binary_mask()` we get a binary mask applying the threshold tunned for every color space that we want, in this case HSV for white and yellow lines. Here the same parameters to find the surface projection are used.
+
+<img src="./writeup_files/no-image-icon-11.PNG" alt="drawing" width="400"/>  
+
+*Figure 13 - Binary surface porjection image*
+
+HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - HERE - 
+
 ### **4. Line Curvature**
 
 <!-- Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center. -->
+
 
 ### **5. Road Area Re-projection**
 
@@ -228,8 +246,18 @@ In order to adjust a geometry over the road surface, the fucntion `find_projecti
 
 <!-- Provide a link to your final video output. Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!) -->
 
+Result with test images: 
 
-Result with test videos here: 
+<img src="./output_images/straight_lines1.jpg" alt="drawing" width="800"/>  
+<img src="./output_images/straight_lines2.jpg" alt="drawing" width="800"/>  
+<img src="./output_images/test1.jpg" alt="drawing" width="800"/>  
+<img src="./output_images/test2.jpg" alt="drawing" width="800"/>  
+<img src="./output_images/test3.jpg" alt="drawing" width="800"/>  
+<img src="./output_images/test4.jpg" alt="drawing" width="800"/>  
+<img src="./output_images/test5.jpg" alt="drawing" width="800"/>  
+<img src="./output_images/test6.jpg" alt="drawing" width="800"/>  
+
+Result with test videos: 
 
 1. [CarND-P2-Adavenced_Lane_Lines_Finding-project_video](https://www.youtube.com/watch?v=vOMT9DGa2Bw) 
 2. [CarND-P2-Adavenced_Lane_Lines_Finding-challenge_video](https://www.youtube.com/watch?v=1VgXQWhJjMw) 
@@ -239,13 +267,16 @@ Result with test videos here:
 ### **Potential Shortcomings**
 * Camera Calibration: Chess board printed in a sheet of paper, seriously Udacity?
 * White and Yellow Objects: If an object in scene appear and has the same or similar color of lane line will be segmented in the binary mask, and maybe due its geometry some lines could be included in the linear regression calculation and this could lead to a bad or wrong lane line approximation.
-
+* Lighting conditions: In hard and real escenarios the light conditions always are gonna change due to shadows, light sources, objects, and others. This problem causes taht the segmentation algorithm tunned for a specfic envioremental conditions dont work properly in others.
+* Perspective Changes: When the car pass through a pothole, the car's pitch angle change and the surface projection should chage as well, but ir doesn't, so the vertical and horizontal pixel relation is not correct, and so the lane line curvature measurement is wrong. 
+* Too much parameters to tune up: There's too much to play with, move up or move down a parameter or other could affect or improve a specific image or video conditions, maybe the static parameters is not the final solution for this problem, others methods can be explored to find the correct parameters with extracting more information of car's enviroment.
 
 ---
 ### **Possible Improvements**
 
 * Camera Calibration: There's some techniques and function to detect how god the camera calibration is, one of these can be implemented to know if the current calibration is good enough for our propose. One example is Re-projection error which gives a good estimation of just how exact the found parameters are.
-* Adaptive color space thresholding values for light condition changing.
+* Lighting conditions: More robust mehtods for a adaptive color space thresholding values when light condition change.
+* Perspective Changes: With car's IMU inforamtion and satanic methods is posible correct the surface proejction on real time, wich is image stabilization. In this way the process will be more robust to potholes and road imperfections that produce bribations in the surface projection images  wich leads to a wrong curvature measure or imprecise value.
 
 
 ---
@@ -255,8 +286,6 @@ The process of geometric camera calibration (camera resectioning) is a fundament
 
 The pattern size and quality is of extreme importance. Let’s consider the case of a chessboard pattern. The calibration process requires to detect the inner corner of the chessboard and the assumption of the algorithm is that every chessboard square is a perfect square. Another assumption is, hence, that the pattern is **perfectly planar***. So, DO NOT print the pattern at home. Seriously. Go to a professional print shop and ask them to create the pattern for you. They have the right software to create the chessboard with squares with the real desired square size with an extremely high accuracy. More than everything, they can print the pattern on a white opaque, rigid and planar material. Stress the print shop to print on some extremely rigid opaque white material. *"Images in this repository are just for explanation but are really bad to calibrate the camera"*. Click here for [Camera calibration guidelines](https://pgaleone.eu/computer-vision/2018/03/04/camera-calibration-guidelines/).
 
-
-
 ---
 
 > **Date:** &nbsp; 03/17/2019  
@@ -264,5 +293,7 @@ The pattern size and quality is of extreme importance. Let’s consider the case
 > **Phone:** &nbsp;+57 (311) 813 7206 / +57 (350) 283 51 22  
 > **Mail:** &nbsp;john.betancourt93@gmail.com / john@kiwicampus.com  
 > **Web:** &nbsp; www.linkedin.com/in/jhon-alberto-betancourt-gonzalez-345557129 
+
+<img src="https://media.giphy.com/media/zOvBKUUEERdNm/giphy.gif" alt="drawing" width="400"/>  
 
 <!-- Sorry for my English -->
