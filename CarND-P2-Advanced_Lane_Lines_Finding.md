@@ -251,7 +251,7 @@ a new one which is called sky view as shown in figure 12, this image is filter u
 
 *Figure 14 - Lane lines finding with sliding window*
 
-The function `fit_polynomial()` return:
+The function `fit_polynomial()` returns:
 
 * left_fit: `numpy.ndarray` second order linear regression of left lane line
 * right_fit: `numpy.ndarray` second order linear regression of right lane line
@@ -261,21 +261,52 @@ The function `fit_polynomial()` return:
 * righty: `numpy.ndarray` right lane line y coordinates 
 * out_img: `cv2.math` binary mask image with linear regression and windows drawings
 
-**Step 10**:
+**Step 10**: Now we need to calculate the horizontal and vertical pixel relation between real world and image world. For this we know beforehand the length of discontinuous lane lines 3m and the distance between the left and right lane line 3.7m, using the function `find_pix_meter_relations()` and these arguments we get xm_per_pix [m/pix], and ym_per_pix [m/pix].
 
-**Step 11**:
+    # Calculate the width of road in pixels
+    y = UNWARPED_SIZE[1] # Evaluate the bottom of image
+
+    # Evaluate polynomial fit in y
+    left_fitx = left_fit[0]*(y**2) + left_fit[1]*y + left_fit[2]
+    right_fitx = right_fit[0]*(y**2) + right_fit[1]*y + right_fit[2]
+
+    # Get distance bewteen lines in pixels
+    x_distance_pix = abs(right_fitx - left_fitx) 
+
+    # calcualte [m/pix] meters per pixel relation in x dimension
+    xm_per_pix = x_distance_m/x_distance_pix 
+
+    # calcualte [m/pix] meters per pixel relation in y dimension
+    ym_per_pix = y_distance_m/pix_dashed_line 
+
+**Step 11**: With these pixels per meter relations, the right and left lane line polynomial fitting, and using the function `measure_curvatures()` evaluated in the bottom of image we finally get the curvature for each line. For example to measure the curvature of left lane line the process is:
+
+    # Measure curvature for left lane line
+    Al = left_fit[0]*(xm_per_pix/(ym_per_pix**2))
+    Bl = left_fit[1]*(xm_per_pix/ym_per_pix)
+    # Calculation of R_curve (radius of curvature)
+    left_curvature = ((1 + (2*Al*y_eval + Bl)**2)**1.5) / np.absolute(2*Al)
+
+If you check the code above you'll find out the polynomial fit is in pixel units, to calculate the curvature in meters we redefine the coefficients with the relations previously calculated.
+
+To get the car's position respect to the lane lines center the function `get_car_road_position()` is called.
 
 ### **5. Road Area Re-projection**
 
 <!-- Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly. -->
-
+To visualize your results the function `draw_results()` will draw everything for us and merge the original image and the projections image with the lane lines drawn and  information like curvatures and car's position. Using this function and the returned arguments for every function already explained we get:
 
 <img src="./output_images/straight_lines1.jpg" alt="drawing" width="800"/>  
-*Figure 15 - Lane lines reprojection in original image*
+*Figure 15 - Lane lines re projection in original image*
 
 ### **6. Results**
-
+ 
 <!-- Provide a link to your final video output. Your pipeline should perform reasonably well on the entire project video (wobbly lines are OK but no catastrophic failures that would cause the car to drive off the road!) -->
+
+For every [test image](https://github.com/JohnBetaCode/CarND-P2-Advanced_Lane_Lines_Finding/tree/master/test_images) you can find the process results in [output_images](https://github.com/JohnBetaCode/CarND-P2-Advanced_Lane_Lines_Finding/tree/master/output_images) folder. 
+
+For every [test video](https://github.com/JohnBetaCode/CarND-P2-Advanced_Lane_Lines_Finding/tree/master/test_videos) you can find the process results in [output_videos](htthttps://github.com/JohnBetaCode/CarND-P2-Advanced_Lane_Lines_Finding/tree/master/output_videos) folder or clicking the links below: 
+
 
 <img src="./writeup_files/video_result_1.gif" alt="drawing" width="800"/> 
 
@@ -285,15 +316,15 @@ The function `fit_polynomial()` return:
 
 *Figure 17 - Finding lane lines with road light conditions changing*
 
-1. [CarND-P2-Adavenced_Lane_Lines_Finding-project_video](https://youtu.be/Iv7EgYnxOWA) 
-2. [CarND-P2-Adavenced_Lane_Lines_Finding-challenge_video](https://youtu.be/Iv7EgYnxOWA) 
-3. [CarND-P2-Adavenced_Lane_Lines_Finding-harder_challenge_video](https://giphy.com/gifs/mrw-oc-asks-wYyTHMm50f4Dm/fullscreen) 
+1. [CarND-P2-Advanced_Lane_Lines_Finding-project_video](https://youtu.be/Iv7EgYnxOWA) 
+2. [CarND-P2-Advanced_Lane_Lines_Finding-challenge_video](https://youtu.be/Iv7EgYnxOWA) 
+3. [CarND-P2-Advanced_Lane_Lines_Finding-harder_challenge_video](https://giphy.com/gifs/mrw-oc-asks-wYyTHMm50f4Dm/fullscreen) 
 
 ---
 ### **Potential Shortcomings**
 * Camera Calibration: Chess board printed in a sheet of paper, seriously Udacity?
 * White and Yellow Objects: If an object in scene appear and has the same or similar color of lane line will be segmented in the binary mask, and maybe due its geometry some lines could be included in the linear regression calculation and this could lead to a bad or wrong lane line approximation.
-* Lighting conditions: In hard and real scenarios the light conditions always are gonna change due to shadows, light sources, objects, and others. This problem causes that the segmentation algorithm tunned for a specific environmental conditions dont work properly in others.
+* Lighting conditions: In hard and real scenarios the light conditions always are gonna change due to shadows, light sources, objects, and others. This problem causes that the segmentation algorithm tunned for a specific environmental conditions don't work properly in others.
 * Perspective Changes: When the car pass through a pothole, the car's pitch angle change and the surface projection should change as well, but it doesn't, so the vertical and horizontal pixel relation is not correct, and so the lane line curvature measurement is wrong. 
 * Too much parameters to tune up: There's too much to play with, move up or move down a parameter or other could affect or improve a specific image or video conditions, maybe the static parameters is not the final solution for this problem, others methods can be explored to find the correct parameters with extracting more information of car's environment.
 
@@ -304,17 +335,16 @@ The function `fit_polynomial()` return:
 * Lighting conditions: More robust methods for a adaptive color space thresholding values when light condition change.
 * Perspective Changes: With car's IMU information and satanic methods is possible correct the surface projection on real time, which is image stabilization. In this way the process will be more robust to potholes and road imperfections that produce vibrations in the surface projection images  which leads to a wrong curvature measure or imprecise value.
 
-
 ---
 ### **Discussion**
 
 The process of geometric camera calibration (camera re-sectioning) is a fundamental step for machine vision and robotics applications. Unfortunately, the result of the calibration process can vary a lot depending on various factors. 
 
-The pattern size and quality is of extreme importance. Let’s consider the case of a chessboard pattern. The calibration process requires to detect the inner corner of the chessboard and the assumption of the algorithm is that every chessboard square is a perfect square. Another assumption is, hence, that the pattern is **perfectly planar***. So, DO NOT print the pattern at home. Seriously. Go to a professional print shop and ask them to create the pattern for you. They have the right software to create the chessboard with squares with the real desired square size with an extremely high accuracy. More than everything, they can print the pattern on a white opaque, rigid and planar material. Stress the print shop to print on some extremely rigid opaque white material. *"Images in this repository are just for explanation but are really bad to calibrate the camera"*. Click here for [Camera calibration guidelines](https://pgaleone.eu/computer-vision/2018/03/04/camera-calibration-guidelines/).
+The pattern size and quality is of extreme importance. Let’s consider the case of a chessboard pattern. The calibration process requires to detect the inner corner of the chessboard and the assumption of the algorithm is that every chessboard square is a perfect square. Another assumption is, hence, that the pattern is **perfectly planar**. So, DO NOT print the pattern at home. Seriously. Go to a professional print shop and ask them to create the pattern for you. They have the right software to create the chessboard with squares with the real desired square size with an extremely high accuracy. More than everything, they can print the pattern on a white opaque, rigid and planar material. Stress the print shop to print on some extremely rigid opaque white material. *"Images in this repository are just for explanation but are really bad to calibrate the camera"*. Click here for [Camera calibration guidelines](https://pgaleone.eu/computer-vision/2018/03/04/camera-calibration-guidelines/).
 
 ---
 
-> **Date:** &nbsp; 03/17/2019  
+> **Date:** &nbsp; 03/20/2019  
 > **Programmer:** &nbsp;John A. Betancourt G.   
 > **Mail:** &nbsp;john.betancourt93@gmail.com  
 > **Web:** &nbsp; www.linkedin.com/in/jhon-alberto-betancourt-gonzalez-345557129 

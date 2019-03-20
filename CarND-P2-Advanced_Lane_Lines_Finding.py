@@ -1561,15 +1561,19 @@ def find_pix_meter_relations(UNWARPED_SIZE, left_fit, right_fit,
     """
 
     # Calculate the width of road in pixels
-    y = UNWARPED_SIZE[1]
+    y = UNWARPED_SIZE[1] # Evaluate the bottom of image
+
+    # Evaluate polynomial fit in y
     left_fitx = left_fit[0]*(y**2) + left_fit[1]*y + left_fit[2]
     right_fitx = right_fit[0]*(y**2) + right_fit[1]*y + right_fit[2]
-    x_distance_pix = abs(right_fitx - left_fitx)
 
-    # [m/pix] meters per pixel in x dimension
+    # Get distance bewteen lines in pixels
+    x_distance_pix = abs(right_fitx - left_fitx) 
+
+    # calcualte [m/pix] meters per pixel relation in x dimension
     xm_per_pix = x_distance_m/x_distance_pix 
 
-    # [m/pix] meters per pixel in y dimension
+    # calcualte [m/pix] meters per pixel relation in y dimension
     ym_per_pix = y_distance_m/pix_dashed_line 
 
     # Print information
@@ -1767,8 +1771,8 @@ if __name__ == "__main__":
     video_list = os.listdir(folder_dir_video)   # Videos list
     
     results_window_name = "surface_projection_result"
-    show_process_calibration = False # Show process for camera calibration
-    show_process_SurfaceProj = False # Sow process for surface projection
+    show_process_calibration = True # Show process for camera calibration
+    show_process_SurfaceProj = True # Sow process for surface projection
     show_process_images = True  # Show process for images
     show_process_videos = True # Show process for videos
     Save_results = True # Enable/Disable results saving
@@ -1797,7 +1801,7 @@ if __name__ == "__main__":
     # Parameters for pixel relation
     pix_dashed_line = 50. # [pix] length of lane line
     x_distance_m = 3.7 # [m] road width or distance between lane lines
-    y_distance_m = 3. # [m] length of lane line
+    y_distance_m = 3. # [m] length of discontinuous lane line
     
     # Poly Fit parameters
     nwindows = 9 # Number of sliding windows
