@@ -118,7 +118,7 @@ class Line():
 
         # if self.fit_confidence < 1.:
 
-        print(self, len(poly_fit), len(x_coords), len(y_coords))
+        # print(self, len(poly_fit), len(x_coords), len(y_coords))
  
 
     def __str__(self):
@@ -1467,17 +1467,19 @@ def find_lane_pixels(src_warped, binary_warped, nwindows=9, margin=100, minpix=5
             print_list_text(out_img, 
                 ("his:{}".format(idx_max_l), 
                  "por:{}%".format(round(nonzero_porc_l, 2)),
-                 "src:{}".format(source_l)), 
+                 "src:{}".format(source_l),
+                 "len:{}".format(len(nonzeroyl))), 
                 origin = (int(win_xleft_low + (win_xleft_high - win_xleft_low)*0.5)+110, 
-                         int(win_y_low + (win_y_high - win_y_low)*0.5)-20), 
-                color = (0, 255, 0), thickness = 1, fontScale = 0.45)
+                          int(win_y_low + (win_y_high - win_y_low)*0.5)-25), 
+                color = (0, 255, 0), thickness = 1, fontScale = 0.35, y_space=15)
             print_list_text(out_img, 
                 ("his:{}".format(idx_max_r), 
                  "por:{}%".format(round(nonzero_porc_r, 2)),
-                 "src:{}".format(source_r)), 
+                 "src:{}".format(source_r),
+                 "len:{}".format(len(nonzeroyr))), 
                 origin = (int(win_xright_low + (win_xright_high - win_xright_low)*0.5)+110, 
-                        int(win_y_low + (win_y_high - win_y_low)*0.5)-20), 
-                color = (0, 255, 0), thickness = 1, fontScale = 0.45)
+                          int(win_y_low + (win_y_high - win_y_low)*0.5)-25), 
+                color = (0, 255, 0), thickness = 1, fontScale = 0.35, y_space=15)
 
             if roi_img_binary_l is not None:
                 roi_img_binary_l = cv2.cvtColor(roi_img_binary_l, cv2.COLOR_GRAY2BGR)
@@ -1523,12 +1525,12 @@ def find_lane_pixels(src_warped, binary_warped, nwindows=9, margin=100, minpix=5
 
         # ---------------------------------------------------------------------
         # If you found > minpix pixels, recenter next window on their mean position
-        if len(nonzeroyl) >= minpix and left_fit is not None :
-            if len(nonzeroxl):
+        if len(nonzeroyl) >= minpix and left_fit is None:
+            if len(nonzeroxl) > 0:
                 leftx_current = np.int(np.mean(nonzeroxl))
 
-        if len(nonzeroyr) >= minpix and right_fit is not None:     
-            if len(nonzeroxr):
+        if len(nonzeroyr) >= minpix and right_fit is None:     
+            if len(nonzeroxr) > 0:
                 rightx_current = np.int(np.mean(nonzeroxr))
 
         # Extract left and right line pixel positions
@@ -1769,7 +1771,7 @@ if __name__ == "__main__":
     show_process_SurfaceProj = False # Sow process for surface projection
     show_process_images = True  # Show process for images
     show_process_videos = True # Show process for videos
-    Save_results = False # Enable/Disable results saving
+    Save_results = True # Enable/Disable results saving
 
     # Variables for camera calibration
     cam_calibration_folder = "./camera_cal" # Folder path with chessboard images
@@ -1780,7 +1782,7 @@ if __name__ == "__main__":
     # Color Thresholding Parameters
     Tune_ranges = False # Enable/Disable parameters tuning
     color_files_list = [
-            # './lane_lines_conf_hls.npz',
+            './lane_lines_conf_hls.npz',
             './white_conf_hsv.npz',
             './yellow_conf_hsv.npz']
 
