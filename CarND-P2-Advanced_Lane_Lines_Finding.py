@@ -1753,6 +1753,8 @@ def draw_results(img_src, img_pro, img_pro_mask, UNWARPED_SIZE, size_points,
 
     return img_res
 
+def check_lane_lines():
+    pass
 
 # =============================================================================
 # MAIN FUNCTION - MAIN FUNCTION - MAIN FUNCTION - MAIN FUNCTION - MAIN FUNCTION

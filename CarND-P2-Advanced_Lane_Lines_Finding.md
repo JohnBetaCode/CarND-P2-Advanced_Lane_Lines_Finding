@@ -3,7 +3,7 @@
 
 ### **Description**
 
-When we drive, we use our eyes to decide where to go. The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle (depending on lines curvature). Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm, then extract some of their features. This project detect lane lines and curvature, first finding the surface projection of road and a relation between images world and real world. I used the tools that I learned about in the lesson (Computer Vision Fundamentals, Camera Calibration, Gradients, Color Spaces, and advanced computer vision techniques from Udacity's NanoDegree of Self driving cars).
+When we drive, we use our eyes to decide where to go. The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle (depending on lines curvature). Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm, then extract some of their features. This project detect lane lines and curvature, first finding the surface projection of road and a relation between images world and real world. I used the tools that I learned about in the lesson (Computer vision fundamentals, camera calibration, gradients, color spaces, and advanced computer vision techniques from Udacity's NanoDegree of Self driving cars).
 
 <img src="./examples/example_output.jpg" alt="drawing" width="500"/> 
 
@@ -14,18 +14,19 @@ The goals / steps of this project are the following:
 * Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
 * Apply a distortion correction to raw images.
 * Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
+* Apply a perspective transform to rectify binary image ("birds eye view").
 * Detect lane pixels and fit to find the lane boundary.
 * Determine the curvature of the lane and vehicle position with respect to center.
 * Warp the detected lane boundaries back onto the original image.
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
 <!-- [Rubric = https://review.udacity.com/#!/rubrics/571/view -->
+
 ---
 
 ### **Used Methods**
 
-The tools that I used for pipeline are color spaces (HSV and HLS), regions of interest, Gaussian smoothing (filters), Canny Edge Detection, Hough LineTransform detection, Histograms peaks, sliding window, transformation matrix for surface projection and others. To achieve the goal was pieced together in to a pipeline to detect the lane lines of each side of the road for images and videos. The curvatures of lines were calculated from a second order linear regression to later estimate the car's steering and position respect to road center.
+The tools that I used for pipeline are color spaces (HSV and HLS), regions of interest, gaussian smoothing (filters), canny edge detection, hough lineTransform detection, histograms peaks, sliding windows, transformation matrix for surface projection and others. To achieve the goal was pieced together in to a pipeline to detect the lane lines of each side of the road for images and videos. The curvatures of lines were calculated from a second order linear regression to later estimate the car's steering and position respect to road center.
 
 ---
 
@@ -33,9 +34,9 @@ The tools that I used for pipeline are color spaces (HSV and HLS), regions of in
 
 To run the pipeline just run in a prompt the command:
 
-```clear && CarND-P2-Advanced_Lane_Lines_Finding.py```
+`clear && CarND-P2-Advanced_Lane_Lines_Finding.py`
 
-Tested on: python 2.7 (3.X should work), OpenCV 3.0.0 (Higher version should work), UBUNTU 16.04.
+Tested on: python 2.7 (3.X should work), OpenCV 3.0.0 (Higher or lower version should work), UBUNTU 16.04.
 
 Feel free to change any of the following hyper parameters:
 
@@ -85,7 +86,6 @@ Feel free to change any of the following hyper parameters:
     margin = 100 # width of the windows +/- margin
     minpix = 10  # minimum number of pixels found to recenter window
 
-
 ---
 
 ### **Code Description**
@@ -96,7 +96,7 @@ Feel free to change any of the following hyper parameters:
 
 OpenCV functions and other CV methods were used to calculate the correct camera matrix and distortion coefficients using the calibration chessboard images provided in this repository (9x6 chessboard images). The distortion matrix was used to undistort one of the calibration images provided as a demonstration that the calibration is correct. 
 
-The function ```calibrate_camera()``` in ```CarND-P2-Advanced_Lane_Lines_Finding.py``` performs the camera calibration. The input arguments are:
+The function `calibrate_camera()` in `CarND-P2-Advanced_Lane_Lines_Finding.py` performs the camera calibration. The input arguments are:
 
 Input Arguments:
 * folder_path: `string` - Folder path with chessboard images
@@ -109,22 +109,21 @@ Returns:
 * mtx: `numpy.narray` - camera distortion matrix
 * dist: `numpy.narray` - camera distortion vector
 
-In ```calibrate_camera()``` fucntion the variable ```object_points``` is initialized with the (x, y, z) coordinates expected of the chessboard corners in the world. Here I am assuming that the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image in folder ```folder_path```. Thus, ```objp``` is just a replicated array of coordinates, and ```object_points``` will be appended with a copy of it every time function successfully detects all chessboard corners in a test image. ```image_points``` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection. The function ```cv2.cornerSubPix()``` is used to refine the corner locations, this adjustment leads to a higher precision.
+In the `calibrate_camera()` the variable `object_points` is initialized with the (x, y, z) coordinates expected of the chessboard corners in the world. Here I am assuming that the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image in folder `folder_path`. Thus, `objp` is just a replicated array of coordinates, and `object_points` will be appended with a copy of it every time function successfully detects all chessboard corners in a test image. `image_points` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection. The function `cv2.cornerSubPix()` is used to refine the corner locations, this adjustment leads to a higher precision.
 
-Evey image to be processed is converted to gray scale, then using the function ```cv2.findChessboardCorners()``` the chessboard corners will be detected, and then the process is the already explained. 
+Evey image to be processed is converted to gray scale, then using the function `cv2.findChessboardCorners()` the chessboard corners will be detected, and then the process is the already explained. 
 
 <img src="./writeup_files/chessboard_result.png" alt="drawing" width="350"/> 
 
 *Figure 2 - Chessboard corners detection*
 
-With all points appended in ```objobject_points``` and ```image_points``` I can compute the camera calibration and distortion coefficients using the function ```cv2.calibrateCamera()```. With the camera matrix, the distortion coefficients, a test image, and the function ```cv2.undistort()``` I got the next result:
+With all points appended in `objobject_points` and `image_points` I can compute the camera calibration and distortion coefficients using the function `cv2.calibrateCamera()`. With the camera matrix, the distortion coefficients, a test image, and the function `cv2.undistort()` I got the next result:
 
 <img src="./output_images/cam_calibration.jpg" alt="drawing" width="700"/> 
 
 *Figure 3 - Result of camera calibration*
 
-If calibration succeeded, camera distortion parameters are saved in a ```npz``` file for later use.
-
+If calibration succeeded, camera distortion parameters are saved in a `npz` file for later use.
 
 ### **2. Thresholded Binary Image**
 
@@ -133,7 +132,7 @@ If calibration succeeded, camera distortion parameters are saved in a ```npz``` 
 I decided to explore my own methods and write all functions from scratch, so no given function was used or modified in this step. I used the same code used at [CarND-P1-Finding_Lane_Lines
 ](https://github.com/JohnBetaCode/CarND-P1-Finding_Lane_Lines) to get a binary mask. 
 
-**Step 0**: &nbsp;I decided to use two HSV color spaces tunned to get a binary image (mask) with our objects of interest (White lane lines and Yellow lane lines). Setting a maximum and a minimum value for each parameter H (Hue), S (Saturation), and V (Value), then compile, see result, adjust and try again is bothersome, so I coded a simple tuner window for this. Using the function ```color_range_tunner()```  you can load stetted parameters and set new values for an image. So, I tuned the color ranges for white and yellow lane lines (```white_conf_hsv.npz``` and ```yellow_conf_hsv.npz```). If you don't tune any parameter, the function loads the stored parameters from a npz file. It’s possible to tune parameters for a different color space model instead of HSV like HLS or others supported by OpenCV. I only played with the HSV space, but HLS could work as well.
+**Step 0**: &nbsp;I decided to use two HSV color spaces tunned to get a binary image (mask) with our objects of interest (White lane lines and Yellow lane lines). Setting a maximum and a minimum value for each parameter H (Hue), S (Saturation), and V (Value), then compile, see result, adjust and try again is bothersome, so I coded a simple tuner window for this. Using the function `color_range_tunner()`  you can load stetted parameters and set new values for an image. So, I tuned the color ranges for white and yellow lane lines (`white_conf_hsv.npz` and `yellow_conf_hsv.npz`). If you don't tune any parameter, the function loads the stored parameters from a npz file. It’s possible to tune parameters for a different color space model instead of HSV like HLS or others supported by OpenCV. 
 
 Let's work with this image:
 
@@ -150,7 +149,7 @@ The color space tunning window is:
 
 *Figure 5 - Color space tunning window*  
 
-You can move the track bars and choose the ranges that you like most. With my chosen ranges let’s see how the main function ```find_lanelines()``` finds and returns the right and left lane lines. 
+You can move the track bars and choose the ranges that you like most. With my chosen ranges let’s see how the main function `find_lanelines()` finds and returns the right and left lane lines. 
 
 Consider the next **input arguments**:  
 * img_src: &nbsp;`cv2.math` &nbsp;- input image to find and approximate left and right lane lines  
@@ -160,20 +159,19 @@ Consider the next **input arguments**:
 * VERT_TRESH: &nbsp;`float` &nbsp;- Normalized value to ignore vertical image range  
 * FILT_KERN: &nbsp;`int` &nbsp;- (odd) size/kernel of filter (Bilateral)  
   
-** Step 1**: &nbsp;The first thing is smooth the image with a bilateral filter with a kernel size given by “FILT_KERN”, but, why a bilateral filter? well, this kind of filters can reduce unwanted noise very well while keeping edges fairly sharp, but they are very slow compared to most filters. Is necessary the filter? Yes, because we want reduce small particles or noise for next steps.
+**Step 1**: &nbsp;The first thing is smooth the image with a bilateral filter with a kernel size given by “FILT_KERN”, but, why a bilateral filter? well, this kind of filters can reduce unwanted noise very well while keeping edges fairly sharp, but they are very slow compared to most filters. Is necessary the filter? Yes, because we want reduce small particles or noise for next steps.
 
 <img src="./writeup_files/img_filt_1.png" alt="drawing" width="400"/>  
 
 *Figure 6 - Smoothed Image with bilateral filter*  
   
-** Step 2**: &nbsp;From our tunned parameters we'll get a binary mask from every color space tunned (COLOR_TRESH_MIN, COLOR_TRESH_MAX, COLOR_MODEL), then apply a logical operator (OR) to combine every mask and compose just one image like in the picture bellow. In every mask, the image area above the threshold VERT_TRESH (image height normalized value) is ignored, in few words this is because we don't care the sky and others objects above this horizontal limit.
+**Step 2**: &nbsp;From our tunned parameters we'll get a binary mask from every color space tunned (`COLOR_TRESH_MIN`, `COLOR_TRESH_MAX`, `COLOR_MODEL`), then apply a logical operator (OR) to combine every mask and compose just one image like in the picture bellow. In every mask, the image area above the threshold `VERT_TRESH` (image height normalized value) is ignored, in few words this is because we don't care the sky and others objects above this horizontal limit.
 
 <img src="./writeup_files/mask_1.png" alt="drawing" width="400"/>  
 
 *Figure 7 - Binary image from color thresholding*  
   
-with the function `load_color_spaces_ranges()` you can provide a list of npz files names of you tunned color spaces and get the necessary arguments with all color spaces.
-
+with the function `load_color_spaces_ranges()` you can provide a list of npz files names of you tunned color spaces and get the necessary arguments with all color spaces combined.
 
 ### **2. Perspective transform Image**
 
@@ -185,19 +183,19 @@ with the function `load_color_spaces_ranges()` you can provide a list of npz fil
 
 *Figure 8 - Contours by Canny edge detection algorithm*  
   
-** Step 4**: &nbsp;Applying the Probabilistic Hough Line function we get the result shown in Figure 9. Setting the correct parameters to get these lines is about experience o just play for a while to get a decent result. The problem now is that we have undesirable red lines in some scenarios. So, the the question now is how do we distinguish what lines we want?, and what lines belong to the right and left side of the road?.
+**Step 4**: &nbsp;Applying the Probabilistic Hough Line function we get the result shown in Figure 9. Setting the correct parameters to get these lines is about experience o just play for a while to get a decent result. The problem now is that we have undesirable red lines in some scenarios. So, the question now is how do we distinguish what lines we want?, and what lines belong to the right and left side of the road?.
 
 <img src="./writeup_files/HoughLinesP.png" alt="drawing" width="400"/>
 
 *Figure 9 - Probabilistic Hough Line algorithm* 
   
-** Step 5**: &nbsp; To distinguish what lines we want and what lines belong to the right and left side I use a simple heuristic. If the vehicle is properly centered in the road, the left and right lane lines always intersect the image in the bottom, and lines that we don't want intersect the image on the left and right side, the unwanted lines also have small angles close to 0. or 180. degrees, so, with some conditionals we can take only the lines that belong to the left and right lane lines. Finally to get just one line per side, we compute a simple linear regression with left and right lines coordinates. 
+**Step 5**: &nbsp; To distinguish what lines we want and what lines belong to the right and left side I use a simple heuristic. If the vehicle is properly centered in the road, the left and right lane lines always intersect the image in the bottom, and lines that we don't want intersect the image on the left and right side, the unwanted lines also have small angles close to 0. or 180. degrees, so, with some conditionals we can take only the lines that belong to the left and right lane lines. Finally to get just one line per side, we compute a simple linear regression with left and right lines coordinates. 
 
 <img src="./writeup_files/HoughLinesP_Heuricstic.png" alt="drawing" width="400"/>  
 
 *Figure 10 - Hough Lines filtered and assigned with heuristic*
   
-The function ```find_lanelines()```  **Returns**:
+The function `find_lanelines()`  **Returns**:
 * Lm: `float`  linear regression slope of left lane line
 * Lb: `float`  linear regression y-intercept of left lane line
 * Rm: `float`  linear regression slope of right lane line
@@ -212,9 +210,9 @@ If no left or right lane line is detected the function returns the parameters Lm
 <!-- Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial? -->
 Next is explained how the polynomial fittings were calculated for images, for videos is quite similar and will be explained later.
 
-**Step 6**: In order to adjust a geometry over the road surface, the function `find_projection()` returns the transformation matrix **(M)** to project the road's three-dimensional view in a dimensional space or bird eye view. For this operation we need four points in the original image (p1, p2, p3, and p4) to be projected in the projection size (pp1, pp2, pp2, pp3), this means that we should project spatially p1 in pp1, p2 in pp2 an so on. p1, p2, p3, and p4 are calculated from the left, right, superior and inferior lines intersections.
+**Step 6**: In order to adjust a geometry over the road surface, the function `find_projection()` returns the transformation matrix **(M)** to project the road's three-dimensional view in a dimensional space or birds eye view. For this operation we need four points in the original image (p1, p2, p3, p4) to be projected in the projection size (pp1, pp2, pp2, pp3), this means that we should project spatially p1 in pp1, p2 in pp2 an so on. p1, p2, p3, and p4 are calculated from the left, right, superior and inferior lines intersections respectively.
 
-the Function `find_projection()` returns:
+The function `find_projection()` returns:
 
 * M: `numpy.darray` transformation matrix 
 * INVM: `numpy.darray` inverse of transformation matrix 
@@ -227,13 +225,13 @@ the Function `find_projection()` returns:
 
 *Figure 11 - Geometric or Polynomial Fitting over surface projection*
 
-** Step 7**: Using the function `cv2.warpPerspective()` we can project the area given by the points p1, p2, p3 and p4 in the original image in
+**Step 7**: Using the function `cv2.warpPerspective()` we can project the area given by the points p1, p2, p3 and p4 in the original image in
 a new one which is called sky view as shown in figure 12, this image is filter using a bilateral filter. 
 
 <img src="./writeup_files/img_proj.jpg" alt="drawing" width="400"/>  
 <img src="./writeup_files/img_filt_2.png" alt="drawing" width="400"/>
 
-*Figure 12 - Left: Surface projection image - Right: Projection Image Filtered*
+*Figure 12 - Left: Surface projection image - Right: Projection image filtered*
 
 **Step 8**: With the function `get_binary_mask()` we get a binary mask applying the threshold tunned for every color space that we want, in this case HSV for white and yellow lines. Here the same parameters to find the surface projection are used.
 
@@ -245,7 +243,7 @@ a new one which is called sky view as shown in figure 12, this image is filter u
 
 <!-- Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center. -->
 
-**Step 9**: Finally, the function `fit_polynomial()` is used to detect the right and left lane line. This function start in bottom of image with a window center in the points p3->pp3 and p4-->pp4, for left and right window respectively. Then using the binary mask obtained in **step 8** the pixels in the window area are extracted. Due to in images there's no a previous polynomial fitting to center the iteration of windows, the windows will be centered if the amount of pixel are superior to a threshold. If there's no enough pixels in the window area, then a second binary mask will be obtained moving the value of V for HSV color model, this is good when the light conditions change suddenly or the road surface is too illuminated. More heuristic is used in this step but it will not be explained so as not to extend this report.
+**Step 9**: Finally, the function `fit_polynomial()` is used to detect the right and left lane lines. This function start in bottom of image with a window center in the points p3->pp3 and p4-->pp4 for the left and right windows respectively. Then using the binary mask obtained in **step 8** the pixels in the window area are extracted. Due to in images there's no a previous polynomial fitting to center the windows in an iteration, the windows will be centered if the amount of pixel are superior to a threshold value. If there's no enough pixels in the window area then a second binary mask will be obtained moving the value of V of the HSV color space model, this is good when the light conditions change suddenly or the road surface is too illuminated. More heuristic is used in this step but it will not be explained so as not to extend this report.
 
 <img src="./writeup_files/img_proj_binary_mask_lane_lines.gif" alt="drawing" width="400"/>  
 
@@ -261,7 +259,7 @@ The function `fit_polynomial()` returns:
 * righty: `numpy.ndarray` right lane line y coordinates 
 * out_img: `cv2.math` binary mask image with linear regression and windows drawings
 
-**Step 10**: Now we need to calculate the horizontal and vertical pixel relation between real world and image world. For this we know beforehand the length of discontinuous lane lines 3m and the distance between the left and right lane line 3.7m, using the function `find_pix_meter_relations()` and these arguments we get xm_per_pix [m/pix], and ym_per_pix [m/pix].
+**Step 10**: Now we need to calculate the horizontal and vertical pixel relation between real world and image world. For this we know beforehand the length of discontinuous lane lines is 3.0 m and the distance between the left and right lane line is 3.7 m, using the function `find_pix_meter_relations()` and these arguments we get the horizontal relation xm_per_pix [m/pix], and the vertical relation ym_per_pix [m/pix].
 
     # Calculate the width of road in pixels
     y = UNWARPED_SIZE[1] # Evaluate the bottom of image
@@ -279,25 +277,28 @@ The function `fit_polynomial()` returns:
     # calcualte [m/pix] meters per pixel relation in y dimension
     ym_per_pix = y_distance_m/pix_dashed_line 
 
-**Step 11**: With these pixels per meter relations, the right and left lane line polynomial fitting, and using the function `measure_curvatures()` evaluated in the bottom of image we finally get the curvature for each line. For example to measure the curvature of left lane line the process is:
+**Step 11**: With these pixels per meter relations, the right and left lane lines polynomials fitting, and using the function `measure_curvatures()` evaluated in the bottom of image we finally get the curvature for each line. For example to measure the curvature of left lane line the code is:
 
     # Measure curvature for left lane line
+
+    # Re-calculation of coefficients
     Al = left_fit[0]*(xm_per_pix/(ym_per_pix**2))
     Bl = left_fit[1]*(xm_per_pix/ym_per_pix)
+
     # Calculation of R_curve (radius of curvature)
     left_curvature = ((1 + (2*Al*y_eval + Bl)**2)**1.5) / np.absolute(2*Al)
 
-If you check the code above you'll find out the polynomial fit is in pixel units, to calculate the curvature in meters we redefine the coefficients with the relations previously calculated.
+If you check the code above you'll find out the polynomial fitting is in pixel units, to calculate the curvature in meters we redefine the coefficients with the relations previously calculated.
 
 To get the car's position respect to the lane lines center the function `get_car_road_position()` is called.
 
 ### **5. Road Area Re-projection**
 
 <!-- Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly. -->
-To visualize your results the function `draw_results()` will draw everything for us and merge the original image and the projections image with the lane lines drawn and  information like curvatures and car's position. Using this function and the returned arguments for every function already explained we get:
+The function `draw_results()` will draw everything for us and merge the original image and the projections image with the lane lines drawn and information like curvatures and car's position. Using this function and the returned arguments for every function already explained we get:
 
 <img src="./output_images/straight_lines1.jpg" alt="drawing" width="800"/>  
-*Figure 15 - Lane lines re projection in original image*
+*Figure 15 - Projected lane lines in original image and more process information*
 
 ### **6. Results**
  
@@ -321,14 +322,16 @@ For every [test video](https://github.com/JohnBetaCode/CarND-P2-Advanced_Lane_Li
 3. [CarND-P2-Advanced_Lane_Lines_Finding-harder_challenge_video](https://giphy.com/gifs/mrw-oc-asks-wYyTHMm50f4Dm/fullscreen) 
 
 ---
+
 ### **Potential Shortcomings**
 * Camera Calibration: Chess board printed in a sheet of paper, seriously Udacity?
-* White and Yellow Objects: If an object in scene appear and has the same or similar color of lane line will be segmented in the binary mask, and maybe due its geometry some lines could be included in the linear regression calculation and this could lead to a bad or wrong lane line approximation.
+* White and Yellow Objects: If an object in scene appear and has the same or similar color of a lane line, this will be segmented in the binary mask, and maybe due its geometry some lines could be included in the linear regression calculation and this could lead to a bad or wrong lane line approximation.
 * Lighting conditions: In hard and real scenarios the light conditions always are gonna change due to shadows, light sources, objects, and others. This problem causes that the segmentation algorithm tunned for a specific environmental conditions don't work properly in others.
-* Perspective Changes: When the car pass through a pothole, the car's pitch angle change and the surface projection should change as well, but it doesn't, so the vertical and horizontal pixel relation is not correct, and so the lane line curvature measurement is wrong. 
-* Too much parameters to tune up: There's too much to play with, move up or move down a parameter or other could affect or improve a specific image or video conditions, maybe the static parameters is not the final solution for this problem, others methods can be explored to find the correct parameters with extracting more information of car's environment.
+* Perspective Changes: When the car pass through a pothole or a deteriorated road, the car's pitch angle (also yaw, and roll) change, the surface projection will change as well, but it doesn't in our code, so the vertical and horizontal pixel relations are not correct, and so the lane lines curvature measurement are wrong. 
+* Too much parameters to tune up: There's too much to play with. Move up or move down a parameter could affect or improve the process for specific environmental conditions in images or videos. Static parameters are not the final solution for this problem, others methods can be explored to find the correct parameters in each frame extracting more information of car's environment using maybe ML algorithms.
 
 ---
+
 ### **Possible Improvements**
 
 * Camera Calibration: There's some techniques and function to detect how god the camera calibration is, one of these can be implemented to know if the current calibration is good enough for our propose. One example is Re-projection error which gives a good estimation of just how exact the found parameters are.
@@ -336,6 +339,7 @@ For every [test video](https://github.com/JohnBetaCode/CarND-P2-Advanced_Lane_Li
 * Perspective Changes: With car's IMU information and satanic methods is possible correct the surface projection on real time, which is image stabilization. In this way the process will be more robust to potholes and road imperfections that produce vibrations in the surface projection images  which leads to a wrong curvature measure or imprecise value.
 
 ---
+
 ### **Discussion**
 
 The process of geometric camera calibration (camera re-sectioning) is a fundamental step for machine vision and robotics applications. Unfortunately, the result of the calibration process can vary a lot depending on various factors. 
